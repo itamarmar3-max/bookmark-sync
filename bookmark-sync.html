@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BookmarkSync — מנהל סימניות חכם</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --bg2: #141416;
+    --bg3: #1c1c20;
+    --bg4: #242428;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #f0f0f0;
+    --text2: #888;
+    --text3: #555;
+    --accent: #6c63ff;
+    --accent2: #7c74ff;
+    --accent-dim: rgba(108,99,255,0.15);
+    --accent-glow: rgba(108,99,255,0.3);
+    --success: #22c55e;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --font: 'Heebo', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    direction: rtl;
+  }
+
+  /* ── SETUP SCREEN ── */
+  #setup-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+    background: var(--bg);
+  }
+
+  .setup-box {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 440px;
+    text-align: center;
+  }
+
+  .setup-logo {
+    width: 56px;
+    height: 56px;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent-glow);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    font-size: 24px;
+  }
+
+  .setup-box h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.4rem; }
+  .setup-box p { color: var(--text2); font-size: 0.9rem; margin-bottom: 2rem; line-height: 1.6; }
+
+  .setup-steps { display: flex; flex-direction: column; gap: 1rem; text-align: right; }
+
+  .step-item {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+
+  .step-num {
+    width: 24px; height: 24px;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent-glow);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .step-text strong { display: block; font-size: 0.875rem; margin-bottom: 0.2rem; }
+  .step-text span { font-size: 0.8rem; color: var(--text2); }
+
+  .code-badge {
+    background: var(--bg4);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.75rem;
+    font-family: monospace;
+    color: var(--accent2);
+  }
+
+  .btn-primary {
+    width: 100%;
+    padding: 0.875rem;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+    font-weight: 500;
+    font-family: var(--font);
+    cursor: pointer;
+    margin-top: 1.5rem;
+    transition: background 0.2s var(--ease), transform 0.1s;
+  }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-primary:active { transform: scale(0.98); }
+
+  /* ── CONFIG SCREEN ── */
+  #config-screen {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+  }
+
+  .config-box {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 440px;
+  }
+
+  .config-box h2 { font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem; }
+  .config-box > p { color: var(--text2); font-size: 0.875rem; margin-bottom: 1.5rem; line-height: 1.6; }
+
+  .field { margin-bottom: 1rem; }
+  .field label { display: block; font-size: 0.8rem; color: var(--text2); margin-bottom: 0.4rem; }
+
+  .field input {
+    width: 100%;
+    padding: 0.7rem 0.875rem;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+    direction: ltr;
+    text-align: left;
+  }
+  .field input:focus { border-color: var(--accent); }
+  .field input::placeholder { color: var(--text3); }
+
+  .config-note {
+    background: var(--accent-dim);
+    border: 1px solid var(--accent-glow);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    font-size: 0.8rem;
+    color: var(--text2);
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    text-align: right;
+  }
+
+  /* ── AUTH SCREEN ── */
+  #auth-screen {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+  }
+
+  .auth-box {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 400px;
+  }
+
+  .auth-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+  }
+
+  .auth-logo-icon {
+    width: 40px; height: 40px;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent-glow);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+
+  .auth-logo span { font-size: 1.1rem; font-weight: 600; }
+
+  .auth-tabs {
+    display: flex;
+    background: var(--bg3);
+    border-radius: var(--radius-sm);
+    padding: 3px;
+    margin-bottom: 1.5rem;
+  }
+
+  .auth-tab {
+    flex: 1; padding: 0.5rem;
+    background: transparent;
+    border: none; border-radius: 6px;
+    color: var(--text2);
+    font-family: var(--font);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .auth-tab.active {
+    background: var(--bg4);
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .msg {
+    padding: 0.65rem 1rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+    display: none;
+  }
+  .msg.error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; display: block; }
+  .msg.success { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #86efac; display: block; }
+
+  /* ── MAIN APP ── */
+  #app {
+    display: none;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* Topbar */
+  .topbar {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 1.5rem;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    position: sticky; top: 0; z-index: 100;
+  }
+
+  .topbar-logo {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-weight: 600; font-size: 0.95rem;
+    margin-left: auto;
+  }
+
+  .topbar-logo-icon {
+    width: 32px; height: 32px;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent-glow);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+
+  .topbar-search {
+    flex: 1;
+    max-width: 400px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0 0.75rem;
+    transition: border-color 0.2s;
+  }
+
+  .topbar-search:focus-within { border-color: var(--accent); }
+
+  .topbar-search input {
+    flex: 1;
+    background: transparent;
+    border: none; outline: none;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 0.875rem;
+    padding: 0.5rem 0;
+    direction: rtl;
+  }
+
+  .topbar-search input::placeholder { color: var(--text3); }
+
+  .topbar-actions { display: flex; gap: 0.5rem; margin-right: auto; }
+
+  .icon-btn {
+    width: 36px; height: 36px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text2);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 16px;
+  }
+  .icon-btn:hover { background: var(--bg3); color: var(--text); border-color: var(--border2); }
+
+  /* Layout */
+  .app-body {
+    display: flex;
+    flex: 1;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--bg2);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 0;
+    height: calc(100vh - 60px);
+    position: sticky;
+    top: 60px;
+    overflow-y: auto;
+  }
+
+  .sidebar-section {
+    padding: 0 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .sidebar-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0 0.5rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    cursor: pointer;
+    color: var(--text2);
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .sidebar-item:hover { background: var(--bg3); color: var(--text); }
+  .sidebar-item.active { background: var(--accent-dim); color: var(--accent2); }
+
+  .sidebar-item .icon { font-size: 14px; width: 18px; text-align: center; }
+
+  .sidebar-count {
+    margin-right: auto;
+    font-size: 0.7rem;
+    background: var(--bg4);
+    color: var(--text3);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+  }
+
+  .folder-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--text2);
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .folder-item:hover { background: var(--bg3); color: var(--text); }
+  .folder-item.active { background: var(--accent-dim); color: var(--accent2); }
+
+  .folder-toggle {
+    width: 14px; height: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px;
+    color: var(--text3);
+    transition: transform 0.2s;
+  }
+
+  .folder-toggle.open { transform: rotate(90deg); }
+
+  .folder-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .folder-count { font-size: 0.7rem; color: var(--text3); }
+
+  .sub-folders { padding-right: 1.25rem; }
+
+  /* Main content */
+  .main-content {
+    flex: 1;
+    padding: 1.5rem;
+    overflow-y: auto;
+  }
+
+  .content-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+
+  .content-header h2 { font-size: 1.1rem; font-weight: 600; }
+  .content-header p { font-size: 0.8rem; color: var(--text2); margin-top: 0.2rem; }
+
+  .header-actions { display: flex; gap: 0.5rem; }
+
+  .btn-secondary {
+    padding: 0.5rem 1rem;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    color: var(--text2);
+    font-family: var(--font);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 0.4rem;
+  }
+  .btn-secondary:hover { background: var(--bg4); color: var(--text); }
+
+  .btn-accent {
+    padding: 0.5rem 1rem;
+    background: var(--accent);
+    border: none;
+    border-radius: var(--radius-sm);
+    color: white;
+    font-family: var(--font);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 0.4rem;
+  }
+  .btn-accent:hover { background: var(--accent2); }
+
+  /* Upload zone */
+  .upload-zone {
+    border: 2px dashed var(--border2);
+    border-radius: var(--radius);
+    padding: 2.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s var(--ease);
+    margin-bottom: 1.5rem;
+    position: relative;
+  }
+
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+
+  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+  .upload-icon { font-size: 2rem; margin-bottom: 0.75rem; }
+  .upload-zone h3 { font-size: 0.95rem; font-weight: 500; margin-bottom: 0.35rem; }
+  .upload-zone p { font-size: 0.8rem; color: var(--text2); }
+
+  /* Stats bar */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.875rem 1rem;
+  }
+
+  .stat-card .stat-label { font-size: 0.75rem; color: var(--text2); margin-bottom: 0.3rem; }
+  .stat-card .stat-value { font-size: 1.4rem; font-weight: 600; }
+  .stat-card .stat-sub { font-size: 0.75rem; color: var(--text3); margin-top: 0.1rem; }
+
+  /* Bookmarks grid */
+  .bookmarks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .bookmark-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    transition: all 0.2s var(--ease);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .bookmark-card:hover {
+    border-color: var(--border2);
+    transform: translateY(-2px);
+    background: var(--bg3);
+  }
+
+  .bookmark-card::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 3px; height: 100%;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .bookmark-card:hover::before { opacity: 1; }
+
+  .bookmark-favicon {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    background: var(--bg4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    margin-bottom: 0.6rem;
+    overflow: hidden;
+  }
+
+  .bookmark-favicon img { width: 100%; height: 100%; object-fit: cover; }
+
+  .bookmark-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bookmark-url {
+    font-size: 0.75rem;
+    color: var(--text3);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-bottom: 0.6rem;
+  }
+
+  .bookmark-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .bookmark-folder {
+    font-size: 0.7rem;
+    color: var(--text3);
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .bookmark-actions {
+    display: flex;
+    gap: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .bookmark-card:hover .bookmark-actions { opacity: 1; }
+
+  .bookmark-btn {
+    width: 26px; height: 26px;
+    background: var(--bg4);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text2);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.15s;
+  }
+
+  .bookmark-btn:hover { background: var(--bg3); color: var(--text); }
+  .bookmark-btn.delete:hover { border-color: rgba(239,68,68,0.4); color: #ef4444; }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text2);
+  }
+
+  .empty-state .empty-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
+  .empty-state h3 { font-size: 1rem; font-weight: 500; margin-bottom: 0.4rem; color: var(--text); }
+  .empty-state p { font-size: 0.875rem; line-height: 1.6; }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--bg4);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+    z-index: 9999;
+    transition: transform 0.3s var(--ease);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  #toast.show { transform: translateX(-50%) translateY(0); }
+  #toast.success { border-color: rgba(34,197,94,0.4); color: #86efac; }
+  #toast.error { border-color: rgba(239,68,68,0.4); color: #fca5a5; }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0.75rem 0;
+  }
+
+  /* Loading */
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    gap: 0.5rem;
+    color: var(--text2);
+    font-size: 0.875rem;
+  }
+
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* User chip */
+  .user-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.75rem;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .user-chip:hover { background: var(--bg4); color: var(--text); }
+
+  .user-dot {
+    width: 8px; height: 8px;
+    background: var(--success);
+    border-radius: 50%;
+  }
+
+  /* Progress */
+  .import-progress {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    display: none;
+  }
+
+  .progress-bar-wrap {
+    background: var(--bg4);
+    border-radius: 4px;
+    height: 6px;
+    margin: 0.75rem 0 0.5rem;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 4px;
+    transition: width 0.3s var(--ease);
+    width: 0%;
+  }
+
+  .progress-text { font-size: 0.8rem; color: var(--text2); }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .topbar-search { max-width: none; }
+    .bookmarks-grid { grid-template-columns: 1fr; }
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* Folder tree indentation */
+  .folder-children { display: none; }
+  .folder-children.open { display: block; }
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div id="setup-screen">
+  <div class="setup-box">
+    <div class="setup-logo">🔖</div>
+    <h1>BookmarkSync</h1>
+    <p>מנהל סימניות חכם עם סנכרון בין מכשירים.<br>ייצא מ-Samsung Internet ופתח בכל מכשיר.</p>
+
+    <div class="setup-steps">
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div class="step-text">
+          <strong>חיבור Supabase</strong>
+          <span>צור פרויקט חינמי ב-<strong>supabase.com</strong> ותקבל URL ו-Anon Key</span>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div class="step-text">
+          <strong>הפעל SQL</strong>
+          <span>לחץ "המשך" כדי לראות את שאילתת ה-SQL שצריך להריץ ב-Supabase</span>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <div class="step-text">
+          <strong>ייצא סימניות</strong>
+          <span>ב-Samsung Internet: הגדרות ← סימניות ← ייצא לקובץ HTML</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="showConfig()">המשך לחיבור ←</button>
+  </div>
+</div>
+
+<!-- CONFIG SCREEN -->
+<div id="config-screen" style="display:none; align-items:center; justify-content:center; min-height:100vh; padding:2rem;">
+  <div class="config-box">
+    <h2>🔌 חיבור Supabase</h2>
+    <p>הכנס את פרטי הפרויקט שלך. הם יישמרו רק על המכשיר שלך.</p>
+
+    <div class="config-note">
+      <strong>SQL שצריך להריץ ב-Supabase (SQL Editor):</strong><br><br>
+      <code style="font-size:0.75rem; white-space:pre-wrap; color:#a78bfa; direction:ltr; display:block; text-align:left;">CREATE TABLE bookmarks (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  url TEXT NOT NULL,
+  favicon TEXT,
+  folder_path TEXT[] DEFAULT '{}',
+  domain TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  hash TEXT UNIQUE
+);
+
+ALTER TABLE bookmarks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users own bookmarks" ON bookmarks
+  FOR ALL USING (auth.uid() = user_id);
+
+CREATE INDEX ON bookmarks(user_id);
+CREATE INDEX ON bookmarks(hash);</code>
+    </div>
+
+    <div class="field">
+      <label>Supabase URL</label>
+      <input type="url" id="sb-url" placeholder="https://xxxx.supabase.co" />
+    </div>
+
+    <div class="field">
+      <label>Anon Key</label>
+      <input type="text" id="sb-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." />
+    </div>
+
+    <div id="config-msg" class="msg"></div>
+
+    <button class="btn-primary" onclick="saveConfig()">שמור וחבר ←</button>
+    <button class="btn-secondary" style="width:100%; margin-top:0.75rem; justify-content:center;" onclick="showSetup()">← חזור</button>
+  </div>
+</div>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen" style="display:none; align-items:center; justify-content:center; min-height:100vh; padding:2rem;">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">🔖</div>
+      <span>BookmarkSync</span>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">כניסה</button>
+      <button class="auth-tab" onclick="switchTab('register')">הרשמה</button>
+    </div>
+
+    <div id="auth-msg" class="msg"></div>
+
+    <div class="field">
+      <label>אימייל</label>
+      <input type="email" id="auth-email" placeholder="you@example.com" />
+    </div>
+
+    <div class="field">
+      <label>סיסמה</label>
+      <input type="password" id="auth-password" placeholder="לפחות 6 תווים" />
+    </div>
+
+    <button class="btn-primary" id="auth-btn" onclick="doAuth()">כניסה</button>
+
+    <p style="text-align:center; margin-top:1rem; font-size:0.8rem; color:var(--text3);">
+      פרטים נשמרים ב-Supabase שלך בלבד
+    </p>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none; flex-direction:column; min-height:100vh;">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-logo">
+      <div class="topbar-logo-icon">🔖</div>
+      BookmarkSync
+    </div>
+
+    <div class="topbar-search">
+      <span style="font-size:14px; color:var(--text3);">🔍</span>
+      <input type="text" id="search-input" placeholder="חיפוש בסימניות..." oninput="filterBookmarks()" />
+    </div>
+
+    <div class="topbar-actions">
+      <div class="user-chip" onclick="signOut()">
+        <div class="user-dot"></div>
+        <span id="user-email-short">משתמש</span>
+        <span style="opacity:0.5">יציאה</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="app-body">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">ניווט</div>
+        <div class="sidebar-item active" id="nav-all" onclick="setView('all')">
+          <span class="icon">📚</span>
+          <span>כל הסימניות</span>
+          <span class="sidebar-count" id="count-all">0</span>
+        </div>
+        <div class="sidebar-item" id="nav-recent" onclick="setView('recent')">
+          <span class="icon">🕐</span>
+          <span>לאחרונה</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">תיקיות</div>
+        <div id="folder-tree"></div>
+      </div>
+
+      <div style="flex:1;"></div>
+
+      <div class="sidebar-section">
+        <button class="btn-secondary" style="width:100%; justify-content:center;" onclick="document.getElementById('import-file').click()">
+          📂 ייבוא סימניות
+        </button>
+        <input type="file" id="import-file" accept=".html,.htm" style="display:none" onchange="importBookmarks(this)" />
+      </div>
+    </div>
+
+    <!-- Main -->
+    <div class="main-content">
+      <!-- Upload zone (shown when empty) -->
+      <div class="upload-zone" id="upload-zone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+        <input type="file" accept=".html,.htm" onchange="importBookmarks(this)" />
+        <div class="upload-icon">📥</div>
+        <h3>גרור קובץ סימניות לכאן</h3>
+        <p>ייצא מ-Samsung Internet וגרור לכאן<br>או לחץ לבחירת קובץ</p>
+      </div>
+
+      <!-- Progress -->
+      <div class="import-progress" id="import-progress">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <strong style="font-size:0.9rem;">מייבא סימניות...</strong>
+          <span class="progress-text" id="progress-num">0 / 0</span>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="progress-bar"></div>
+        </div>
+        <div class="progress-text" id="progress-status">מכין...</div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-bar" id="stats-bar" style="display:none;">
+        <div class="stat-card">
+          <div class="stat-label">סה"כ סימניות</div>
+          <div class="stat-value" id="stat-total">0</div>
+          <div class="stat-sub">במכשיר זה</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">תיקיות</div>
+          <div class="stat-value" id="stat-folders">0</div>
+          <div class="stat-sub">רמות שונות</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">אתרים שונים</div>
+          <div class="stat-value" id="stat-domains">0</div>
+          <div class="stat-sub">domains ייחודיים</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">ייבוא אחרון</div>
+          <div class="stat-value" style="font-size:1rem;" id="stat-last">—</div>
+          <div class="stat-sub">תאריך</div>
+        </div>
+      </div>
+
+      <!-- Content header -->
+      <div class="content-header" id="content-header" style="display:none;">
+        <div>
+          <h2 id="view-title">כל הסימניות</h2>
+          <p id="view-subtitle">טוען...</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn-secondary" onclick="document.getElementById('import-file').click()">
+            📂 ייבוא נוסף
+          </button>
+        </div>
+      </div>
+
+      <!-- Bookmarks -->
+      <div class="bookmarks-grid" id="bookmarks-grid"></div>
+
+      <!-- Loading -->
+      <div class="loading" id="loading-indicator" style="display:none;">
+        <div class="spinner"></div>
+        <span>טוען סימניות...</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+let sbClient = null;
+let currentUser = null;
+let allBookmarks = [];
+let currentView = 'all';
+let currentFolder = null;
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+window.onload = async () => {
+  const url = localStorage.getItem('sb_url');
+  const key = localStorage.getItem('sb_key');
+
+  if (!url || !key) {
+    showSetup();
+    return;
+  }
+
+  initSupabase(url, key);
+
+  const { data: { session } } = await sbClient.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    showApp();
+  } else {
+    showAuth();
+  }
+};
+
+function initSupabase(url, key) {
+  sbClient = window.supabase.createClient(url, key);
+}
+
+// ─────────────────────────────────────────────
+// SCREENS
+// ─────────────────────────────────────────────
+function showSetup() {
+  document.getElementById('setup-screen').style.display = 'flex';
+  document.getElementById('config-screen').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'none';
+}
+
+function showConfig() {
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('config-screen').style.display = 'flex';
+}
+
+function showAuth() {
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('config-screen').style.display = 'none';
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'none';
+}
+
+async function showApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+
+  const email = currentUser.email || '';
+  document.getElementById('user-email-short').textContent = email.split('@')[0];
+
+  await loadBookmarks();
+}
+
+// ─────────────────────────────────────────────
+// CONFIG
+// ─────────────────────────────────────────────
+async function saveConfig() {
+  const url = document.getElementById('sb-url').value.trim();
+  const key = document.getElementById('sb-key').value.trim();
+  const msg = document.getElementById('config-msg');
+
+  if (!url || !key) {
+    showMsg(msg, 'מלא URL ו-Key', 'error');
+    return;
+  }
+
+  try {
+    initSupabase(url, key);
+    const { error } = await sbClient.auth.getSession();
+    if (error) throw error;
+
+    localStorage.setItem('sb_url', url);
+    localStorage.setItem('sb_key', key);
+    showMsg(msg, '✅ חיבור הצליח!', 'success');
+    setTimeout(showAuth, 1000);
+  } catch (e) {
+    showMsg(msg, 'שגיאה: בדוק URL ו-Key', 'error');
+  }
+}
+
+// ─────────────────────────────────────────────
+// AUTH
+// ─────────────────────────────────────────────
+let authMode = 'login';
+
+function switchTab(mode) {
+  authMode = mode;
+  document.querySelectorAll('.auth-tab').forEach((t, i) => {
+    t.classList.toggle('active', (mode === 'login' && i === 0) || (mode === 'register' && i === 1));
+  });
+  document.getElementById('auth-btn').textContent = mode === 'login' ? 'כניסה' : 'הרשמה';
+  document.getElementById('auth-msg').className = 'msg';
+}
+
+async function doAuth() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const msg = document.getElementById('auth-msg');
+
+  if (!email || !password) {
+    showMsg(msg, 'מלא אימייל וסיסמה', 'error');
+    return;
+  }
+
+  document.getElementById('auth-btn').textContent = '⏳ רגע...';
+
+  try {
+    let result;
+    if (authMode === 'login') {
+      result = await sbClient.auth.signInWithPassword({ email, password });
+    } else {
+      result = await sbClient.auth.signUp({ email, password });
+    }
+
+    if (result.error) throw result.error;
+
+    currentUser = result.data.user || result.data.session?.user;
+
+    if (authMode === 'register' && !result.data.session) {
+      showMsg(msg, '✅ נשלח אימייל אימות! בדוק את תיבת הדואר שלך.', 'success');
+      document.getElementById('auth-btn').textContent = 'הרשמה';
+      return;
+    }
+
+    showApp();
+  } catch (e) {
+    showMsg(msg, e.message || 'שגיאה', 'error');
+    document.getElementById('auth-btn').textContent = authMode === 'login' ? 'כניסה' : 'הרשמה';
+  }
+}
+
+async function signOut() {
+  await sbClient.auth.signOut();
+  currentUser = null;
+  allBookmarks = [];
+  showAuth();
+}
+
+// ─────────────────────────────────────────────
+// LOAD BOOKMARKS
+// ─────────────────────────────────────────────
+async function loadBookmarks() {
+  document.getElementById('loading-indicator').style.display = 'flex';
+  document.getElementById('bookmarks-grid').innerHTML = '';
+
+  const { data, error } = await supabase
+    .from('bookmarks')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('folder_path')
+    .order('title');
+
+  document.getElementById('loading-indicator').style.display = 'none';
+
+  if (error) {
+    showToast('שגיאה בטעינת סימניות', 'error');
+    return;
+  }
+
+  allBookmarks = data || [];
+
+  if (allBookmarks.length === 0) {
+    document.getElementById('upload-zone').style.display = 'block';
+    document.getElementById('stats-bar').style.display = 'none';
+    document.getElementById('content-header').style.display = 'none';
+  } else {
+    document.getElementById('upload-zone').style.display = 'none';
+    document.getElementById('stats-bar').style.display = 'grid';
+    document.getElementById('content-header').style.display = 'flex';
+    updateStats();
+    buildFolderTree();
+    renderBookmarks();
+  }
+}
+
+// ─────────────────────────────────────────────
+// STATS
+// ─────────────────────────────────────────────
+function updateStats() {
+  const total = allBookmarks.length;
+  const folders = new Set();
+  const domains = new Set();
+
+  allBookmarks.forEach(b => {
+    (b.folder_path || []).forEach(f => folders.add(f));
+    if (b.domain) domains.add(b.domain);
+  });
+
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-folders').textContent = folders.size;
+  document.getElementById('stat-domains').textContent = domains.size;
+  document.getElementById('count-all').textContent = total;
+
+  const latest = allBookmarks.reduce((a, b) =>
+    new Date(b.created_at) > new Date(a.created_at) ? b : a, allBookmarks[0]);
+
+  if (latest) {
+    const d = new Date(latest.created_at);
+    document.getElementById('stat-last').textContent =
+      d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
+  }
+}
+
+// ─────────────────────────────────────────────
+// FOLDER TREE
+// ─────────────────────────────────────────────
+function buildFolderTree() {
+  const tree = {};
+
+  allBookmarks.forEach(b => {
+    const path = b.folder_path || [];
+    let node = tree;
+    path.forEach(folder => {
+      if (!node[folder]) node[folder] = { _children: {}, _count: 0 };
+      node[folder]._count++;
+      node = node[folder]._children;
+    });
+  });
+
+  const container = document.getElementById('folder-tree');
+  container.innerHTML = renderFolderNode(tree, []);
+}
+
+function renderFolderNode(node, path) {
+  return Object.entries(node).map(([name, data]) => {
+    const fullPath = [...path, name];
+    const hasChildren = Object.keys(data._children).length > 0;
+    const id = 'folder-' + fullPath.join('-').replace(/[^a-z0-9]/gi, '_');
+
+    return `
+      <div class="folder-item" id="${id}" onclick="selectFolder(${JSON.stringify(fullPath)}, '${id}')">
+        <span class="folder-toggle ${hasChildren ? '' : 'leaf'}" id="${id}-toggle" 
+          ${hasChildren ? `onclick="toggleFolder(event, '${id}-children', '${id}-toggle')"` : ''}>
+          ${hasChildren ? '▶' : ''}
+        </span>
+        <span style="font-size:13px;">📁</span>
+        <span class="folder-name">${name}</span>
+        <span class="folder-count">${data._count}</span>
+      </div>
+      ${hasChildren ? `
+        <div class="folder-children sub-folders" id="${id}-children">
+          ${renderFolderNode(data._children, fullPath)}
+        </div>
+      ` : ''}
+    `;
+  }).join('');
+}
+
+function toggleFolder(e, childrenId, toggleId) {
+  e.stopPropagation();
+  const children = document.getElementById(childrenId);
+  const toggle = document.getElementById(toggleId);
+  children.classList.toggle('open');
+  toggle.classList.toggle('open');
+}
+
+function selectFolder(path, id) {
+  currentFolder = path;
+  currentView = 'folder';
+
+  document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.folder-item').forEach(el => el.classList.remove('active'));
+  document.getElementById(id)?.classList.add('active');
+
+  document.getElementById('view-title').textContent = '📁 ' + path[path.length - 1];
+  renderBookmarks();
+}
+
+// ─────────────────────────────────────────────
+// RENDER BOOKMARKS
+// ─────────────────────────────────────────────
+function setView(view) {
+  currentView = view;
+  currentFolder = null;
+
+  document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.folder-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('nav-' + view)?.classList.add('active');
+
+  if (view === 'all') document.getElementById('view-title').textContent = 'כל הסימניות';
+  if (view === 'recent') document.getElementById('view-title').textContent = 'סימניות אחרונות';
+
+  renderBookmarks();
+}
+
+function renderBookmarks() {
+  const search = document.getElementById('search-input').value.toLowerCase();
+  let items = [...allBookmarks];
+
+  if (currentView === 'folder' && currentFolder) {
+    items = items.filter(b => {
+      const path = b.folder_path || [];
+      if (path.length < currentFolder.length) return false;
+      return currentFolder.every((f, i) => path[i] === f);
+    });
+  }
+
+  if (currentView === 'recent') {
+    items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    items = items.slice(0, 50);
+  }
+
+  if (search) {
+    items = items.filter(b =>
+      b.title.toLowerCase().includes(search) ||
+      b.url.toLowerCase().includes(search) ||
+      (b.folder_path || []).join(' ').toLowerCase().includes(search)
+    );
+  }
+
+  document.getElementById('view-subtitle').textContent = `${items.length} סימניות`;
+
+  const grid = document.getElementById('bookmarks-grid');
+
+  if (items.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1;">
+        <div class="empty-icon">🔍</div>
+        <h3>${search ? 'לא נמצאו תוצאות' : 'התיקייה ריקה'}</h3>
+        <p>${search ? 'נסה חיפוש שונה' : 'אין סימניות בתיקייה זו'}</p>
+      </div>
+    `;
+    return;
+  }
+
+  grid.innerHTML = items.map(b => renderBookmarkCard(b)).join('');
+}
+
+function renderBookmarkCard(b) {
+  const path = (b.folder_path || []).join(' › ');
+  const domain = b.domain || '';
+  const faviconUrl = domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=32` : '';
+
+  return `
+    <div class="bookmark-card" onclick="openBookmark('${b.url}')">
+      <div class="bookmark-favicon">
+        ${faviconUrl ? `<img src="${faviconUrl}" onerror="this.style.display='none';this.parentElement.textContent='🔗'" />` : '🔗'}
+      </div>
+      <div class="bookmark-title" title="${escHtml(b.title)}">${escHtml(b.title)}</div>
+      <div class="bookmark-url">${escHtml(b.url)}</div>
+      <div class="bookmark-footer">
+        <div class="bookmark-folder">
+          ${path ? `📁 ${escHtml(path)}` : ''}
+        </div>
+        <div class="bookmark-actions">
+          <button class="bookmark-btn" onclick="event.stopPropagation(); copyUrl('${escHtml(b.url)}')" title="העתק קישור">📋</button>
+          <button class="bookmark-btn delete" onclick="event.stopPropagation(); deleteBookmark('${b.id}')" title="מחק">🗑</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function openBookmark(url) {
+  window.open(url, '_blank');
+}
+
+function copyUrl(url) {
+  navigator.clipboard.writeText(url).then(() => showToast('קישור הועתק!', 'success'));
+}
+
+function filterBookmarks() {
+  renderBookmarks();
+}
+
+// ─────────────────────────────────────────────
+// DELETE
+// ─────────────────────────────────────────────
+async function deleteBookmark(id) {
+  if (!confirm('למחוק סימנייה זו?')) return;
+
+  const { error } = await sbClient.from('bookmarks').delete().eq('id', id).eq('user_id', currentUser.id);
+
+  if (error) {
+    showToast('שגיאה במחיקה', 'error');
+    return;
+  }
+
+  allBookmarks = allBookmarks.filter(b => b.id !== id);
+  updateStats();
+  buildFolderTree();
+  renderBookmarks();
+  showToast('נמחק', 'success');
+}
+
+// ─────────────────────────────────────────────
+// IMPORT BOOKMARKS
+// ─────────────────────────────────────────────
+async function importBookmarks(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const text = await file.text();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(text, 'text/html');
+
+  const bookmarks = [];
+  parseBookmarkFolder(doc.body || doc.documentElement, [], bookmarks);
+
+  if (bookmarks.length === 0) {
+    showToast('לא נמצאו סימניות בקובץ', 'error');
+    return;
+  }
+
+  // Show progress
+  document.getElementById('upload-zone').style.display = 'none';
+  const progressEl = document.getElementById('import-progress');
+  progressEl.style.display = 'block';
+  document.getElementById('progress-bar').style.width = '0%';
+  document.getElementById('progress-num').textContent = `0 / ${bookmarks.length}`;
+  document.getElementById('progress-status').textContent = 'בודק כפילויות...';
+
+  // Fetch existing hashes to avoid duplicates
+  const { data: existing } = await supabase
+    .from('bookmarks')
+    .select('hash')
+    .eq('user_id', currentUser.id);
+
+  const existingHashes = new Set((existing || []).map(e => e.hash));
+
+  // Filter new bookmarks
+  const toInsert = bookmarks.filter(b => !existingHashes.has(b.hash));
+
+  if (toInsert.length === 0) {
+    progressEl.style.display = 'none';
+    showToast('כל הסימניות כבר קיימות — אין כפילויות!', 'success');
+    return;
+  }
+
+  // Batch insert (50 at a time)
+  const BATCH = 50;
+  let inserted = 0;
+
+  for (let i = 0; i < toInsert.length; i += BATCH) {
+    const batch = toInsert.slice(i, i + BATCH).map(b => ({
+      user_id: currentUser.id,
+      title: b.title,
+      url: b.url,
+      folder_path: b.folder_path,
+      domain: b.domain,
+      hash: b.hash
+    }));
+
+    const { error } = await sbClient.from('bookmarks').insert(batch);
+
+    if (error) {
+      console.error(error);
+    } else {
+      inserted += batch.length;
+    }
+
+    const pct = Math.round(((i + BATCH) / toInsert.length) * 100);
+    document.getElementById('progress-bar').style.width = Math.min(pct, 100) + '%';
+    document.getElementById('progress-num').textContent = `${Math.min(i + BATCH, toInsert.length)} / ${toInsert.length}`;
+    document.getElementById('progress-status').textContent = `שומר... ${inserted} סימניות`;
+  }
+
+  progressEl.style.display = 'none';
+
+  const skipped = bookmarks.length - toInsert.length;
+  showToast(
+    `✅ יובאו ${inserted} סימניות חדשות` + (skipped > 0 ? ` · ${skipped} כבר קיימות` : ''),
+    'success'
+  );
+
+  input.value = '';
+  await loadBookmarks();
+}
+
+function parseBookmarkFolder(node, path, results) {
+  const children = node.children;
+  if (!children) return;
+
+  let currentFolderName = null;
+
+  for (const child of children) {
+    const tag = child.tagName?.toUpperCase();
+
+    if (tag === 'DL' || tag === 'DT' || tag === 'DD') {
+      parseBookmarkFolder(child, path, results);
+    } else if (tag === 'H3' || tag === 'H1' || tag === 'H2') {
+      currentFolderName = child.textContent.trim();
+    } else if (tag === 'A') {
+      const url = child.getAttribute('href') || '';
+      const title = child.textContent.trim() || url;
+
+      if (!url || url.startsWith('javascript:') || url === 'about:blank') continue;
+      if (!url.startsWith('http://') && !url.startsWith('https://')) continue;
+
+      let domain = '';
+      try { domain = new URL(url).hostname; } catch (_) {}
+
+      const hash = btoa(encodeURIComponent(url)).substring(0, 64);
+
+      results.push({
+        title,
+        url,
+        folder_path: [...path],
+        domain,
+        hash
+      });
+    }
+
+    // If this DT contains both H3 and DL, recurse into DL with updated path
+    if (tag === 'DT') {
+      const h3 = child.querySelector('H3, H1, H2');
+      const dl = child.querySelector('DL');
+      if (h3 && dl) {
+        parseBookmarkFolder(dl, [...path, h3.textContent.trim()], results);
+      } else if (!h3) {
+        parseBookmarkFolder(child, path, results);
+      }
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+// DRAG & DROP
+// ─────────────────────────────────────────────
+function handleDragOver(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.add('drag-over');
+}
+
+function handleDragLeave() {
+  document.getElementById('upload-zone').classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) importBookmarks({ files: [file], value: '' });
+}
+
+// ─────────────────────────────────────────────
+// UTILS
+// ─────────────────────────────────────────────
+function showMsg(el, text, type) {
+  el.textContent = text;
+  el.className = 'msg ' + type;
+}
+
+function showToast(text, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.className = type ? `show ${type}` : 'show';
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => t.className = '', 3500);
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+</script>
+</body>
+</html>
