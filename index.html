@@ -334,6 +334,18 @@
   }
   .icon-btn:hover { background: var(--bg3); color: var(--text); border-color: var(--border2); }
 
+  .ai-btn {
+    width: auto;
+    padding: 0 0.7rem;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--accent2);
+    border-color: var(--accent-glow);
+    background: var(--accent-dim);
+  }
+  .ai-btn:hover { background: var(--accent-glow); color: #fff; }
+
   /* Layout */
   .app-body {
     display: flex;
@@ -554,6 +566,12 @@
 
   .bookmark-card:hover::before { opacity: 1; }
 
+  .bookmark-main {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+  }
+
   .bookmark-favicon {
     width: 28px; height: 28px;
     border-radius: 6px;
@@ -735,9 +753,14 @@
   /* Responsive */
   @media (max-width: 768px) {
     .sidebar { display: none; }
-    .topbar-search { max-width: none; }
+    .topbar { padding: 0 0.6rem; gap: 0.4rem; }
+    .topbar-logo { display: none; }               /* free space so the action buttons stay on-screen */
+    .topbar-search { max-width: none; min-width: 0; }
+    .topbar-actions { gap: 0.35rem; }
+    .user-chip .chip-signout, .user-chip #user-email-short { display: none; } /* keep just the dot on mobile */
     .bookmarks-grid { grid-template-columns: 1fr; }
     .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    .bookmark-actions { opacity: 1; }             /* touch devices have no hover — always show copy/delete */
   }
 
   /* Folder tree indentation */
@@ -1000,12 +1023,8 @@ CREATE INDEX ON bookmarks(user_id);</code>
 
     <button class="btn-primary" id="auth-btn" onclick="doAuth()">כניסה</button>
 
-    <button class="btn-secondary" style="width:100%; justify-content:center; margin-top:0.75rem;" onclick="resetConnection()">
-      🔌 החלף חיבור Supabase
-    </button>
-
     <p style="text-align:center; margin-top:1rem; font-size:0.8rem; color:var(--text3);">
-      פרטים נשמרים ב-Supabase שלך בלבד
+      התחבר עם אותו חשבון בכל מכשיר — הסימניות יסתנכרנו אוטומטית
     </p>
   </div>
 </div>
@@ -1026,12 +1045,12 @@ CREATE INDEX ON bookmarks(user_id);</code>
     </div>
 
     <div class="topbar-actions">
-      <button class="icon-btn" title="הוסף סימנייה" onclick="quickAddClicked()">➕</button>
-      <button class="icon-btn" title="הגדרות AI" onclick="openAISettings()">⚙️</button>
+      <button class="icon-btn" title="הוסף קישורים" onclick="openBulkAdd()">➕</button>
+      <button class="icon-btn ai-btn" title="AI — הגדרות, חיפוש חכם וארגון" onclick="openAISettings()">✨ AI</button>
       <div class="user-chip" onclick="signOut()">
         <div class="user-dot"></div>
         <span id="user-email-short">משתמש</span>
-        <span style="opacity:0.5">יציאה</span>
+        <span class="chip-signout" style="opacity:0.5">יציאה</span>
       </div>
     </div>
   </div>
@@ -1081,8 +1100,9 @@ CREATE INDEX ON bookmarks(user_id);</code>
       <div class="upload-zone" id="upload-zone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
         <input type="file" accept=".html,.htm" onchange="importBookmarks(this)" />
         <div class="upload-icon">📥</div>
-        <h3>גרור קובץ סימניות לכאן</h3>
-        <p>ייצא מ-Samsung Internet וגרור לכאן<br>או לחץ לבחירת קובץ</p>
+        <h3>הוסף את הסימניות שלך</h3>
+        <p>הדבק קישורים ידנית, או ייצא קובץ HTML מ-Samsung Internet וגרור לכאן</p>
+        <button class="btn-accent" style="position:relative; z-index:2; margin:1.1rem auto 0;" onclick="event.stopPropagation(); openBulkAdd()">➕ הדבק קישורים ושמור</button>
       </div>
 
       <!-- Progress -->
@@ -1131,6 +1151,9 @@ CREATE INDEX ON bookmarks(user_id);</code>
           <button class="btn-secondary" id="discover-btn" style="display:none;" onclick="startDiscover()">
             ✨ גלה עוד
           </button>
+          <button class="btn-accent" onclick="openBulkAdd()">
+            ➕ הדבק קישורים
+          </button>
           <button class="btn-secondary" onclick="document.getElementById('import-file').click()">
             📂 ייבוא נוסף
           </button>
@@ -1151,6 +1174,41 @@ CREATE INDEX ON bookmarks(user_id);</code>
 
 <!-- Toast -->
 <div id="toast"></div>
+
+<!-- BULK ADD MODAL -->
+<div class="modal-overlay" id="bulkadd-modal">
+  <div class="modal-card">
+    <h2>➕ הדבקת קישורים</h2>
+    <p>הדבק כמה קישורים שאתה רוצה — כל אחד בשורה, או מעורבב עם טקסט. האתר יזהה לבד כל קישור וייתן לו כותרת.</p>
+
+    <div class="msg" id="bulk-add-msg"></div>
+
+    <div class="field">
+      <label>קישורים</label>
+      <textarea id="bulkadd-text" rows="7" class="rtl-input"
+        placeholder="מתכון שקשוקה https://food.example/shakshuka&#10;https://youtube.com/watch?v=abc&#10;כתבה מעניינת https://news.example/article"
+        oninput="updateBulkPreview()"
+        style="width:100%; padding:0.7rem 0.875rem; background:var(--bg3); border:1px solid var(--border2); border-radius:var(--radius-sm); color:var(--text); font-family:var(--font); font-size:0.9rem; outline:none; resize:vertical; line-height:1.6;"></textarea>
+      <p id="bulkadd-count" style="font-size:0.78rem; color:var(--text3); margin-top:0.4rem;">לא זוהו קישורים עדיין</p>
+    </div>
+
+    <div class="field">
+      <label>שמור לתיקייה</label>
+      <select id="bulkadd-folder" onchange="bulkAddFolderChanged()"></select>
+      <input type="text" id="bulkadd-new-folder" class="rtl-input" placeholder="שם תיקייה חדשה (אפשר גם אב/בן)" style="display:none; margin-top:0.5rem;" />
+    </div>
+
+    <!-- Progress reused inline -->
+    <div class="progress-bar-wrap" id="bulkadd-progress-wrap" style="display:none;">
+      <div class="progress-bar-fill" id="bulkadd-progress-bar"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-primary" id="bulkadd-save-btn" onclick="saveBulkLinks()">שמור הכל</button>
+      <button class="btn-secondary" onclick="closeBulkAdd()">ביטול</button>
+    </div>
+  </div>
+</div>
 
 <!-- QUICK SAVE MODAL -->
 <div class="modal-overlay" id="quicksave-modal">
@@ -1265,6 +1323,15 @@ CREATE INDEX ON bookmarks(user_id);</code>
 
 <script>
 // ─────────────────────────────────────────────
+// FIXED SUPABASE CONNECTION
+// Same project on every device — no per-device setup. The publishable key is
+// safe to ship in the client: the data is protected by Row Level Security, so
+// nobody can read your bookmarks without signing into your account.
+// ─────────────────────────────────────────────
+const DEFAULT_SB_URL = 'https://qedjnioterasglhpnzdk.supabase.co';
+const DEFAULT_SB_KEY = 'sb_publishable_tJfERoRop3vIOZBRFnFsUg_GYMd5UYy';
+
+// ─────────────────────────────────────────────
 // STATE
 // ─────────────────────────────────────────────
 let sbClient = null;
@@ -1289,15 +1356,11 @@ window.onload = async () => {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
 
-  const url = localStorage.getItem('sb_url');
-  const key = localStorage.getItem('sb_key');
-
-  if (!url || !key) {
-    showSetup();
-    return;
-  }
-
-  initSupabase(url, key);
+  // Always use the fixed connection; drop any stale per-device config from
+  // older versions so every device points at the same project automatically.
+  localStorage.removeItem('sb_url');
+  localStorage.removeItem('sb_key');
+  initSupabase(DEFAULT_SB_URL, DEFAULT_SB_KEY);
 
   try {
     const { data: { session } } = await sbClient.auth.getSession();
@@ -1308,8 +1371,6 @@ window.onload = async () => {
       showAuth();
     }
   } catch (e) {
-    // e.g. the saved project was deleted/paused — land on auth so the
-    // "switch connection" button is reachable
     showAuth();
   }
 };
@@ -1333,27 +1394,6 @@ function showConfig() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'none';
   document.getElementById('config-screen').style.display = 'flex';
-}
-
-// Disconnect the current Supabase project and return to the config screen so a
-// new project's URL + key can be entered (e.g. after migrating to a new project)
-async function resetConnection() {
-  if (!confirm('להחליף חיבור Supabase? תזין URL ומפתח חדשים. הסימניות עצמן נשארות בפרויקט Supabase שלך.')) return;
-
-  try { await sbClient?.auth?.signOut(); } catch (_) {}
-
-  localStorage.removeItem('sb_url');
-  localStorage.removeItem('sb_key');
-  currentUser = null;
-  allBookmarks = [];
-
-  const urlInput = document.getElementById('sb-url');
-  const keyInput = document.getElementById('sb-key');
-  if (urlInput) urlInput.value = '';
-  if (keyInput) keyInput.value = '';
-  document.getElementById('config-msg').className = 'msg';
-
-  showConfig();
 }
 
 function showAuth() {
@@ -1656,20 +1696,26 @@ function renderBookmarkCard(b) {
   const domain = b.domain || '';
   const faviconUrl = domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=32` : '';
 
+  const safeUrl = escHtml(b.url);
+
+  // Real anchor for the main click area — reliable everywhere, including a
+  // standalone PWA on mobile where window.open can be blocked
   return `
-    <div class="bookmark-card" onclick="openBookmark('${b.url}')">
-      <div class="bookmark-favicon">
-        ${faviconUrl ? `<img src="${faviconUrl}" onerror="this.style.display='none';this.parentElement.textContent='🔗'" />` : '🔗'}
-      </div>
-      <div class="bookmark-title" title="${escHtml(b.title)}">${escHtml(b.title)}</div>
-      <div class="bookmark-url">${escHtml(b.url)}</div>
+    <div class="bookmark-card">
+      <a class="bookmark-main" href="${safeUrl}" target="_blank" rel="noopener noreferrer">
+        <div class="bookmark-favicon">
+          ${faviconUrl ? `<img src="${faviconUrl}" onerror="this.style.display='none';this.parentElement.textContent='🔗'" />` : '🔗'}
+        </div>
+        <div class="bookmark-title" title="${escHtml(b.title)}">${escHtml(b.title)}</div>
+        <div class="bookmark-url">${escHtml(b.url)}</div>
+      </a>
       <div class="bookmark-footer">
         <div class="bookmark-folder">
           ${path ? `📁 ${escHtml(path)}` : ''}
         </div>
         <div class="bookmark-actions">
-          <button class="bookmark-btn" onclick="event.stopPropagation(); copyUrl('${escHtml(b.url)}')" title="העתק קישור">📋</button>
-          <button class="bookmark-btn delete" onclick="event.stopPropagation(); deleteBookmark('${b.id}')" title="מחק">🗑</button>
+          <button class="bookmark-btn" data-url="${safeUrl}" onclick="copyUrl(this.dataset.url)" title="העתק קישור">📋</button>
+          <button class="bookmark-btn delete" data-id="${b.id}" onclick="deleteBookmark(this.dataset.id)" title="מחק">🗑</button>
         </div>
       </div>
     </div>
@@ -1677,7 +1723,16 @@ function renderBookmarkCard(b) {
 }
 
 function openBookmark(url) {
-  window.open(url, '_blank');
+  if (!url) return;
+  // Use a temporary anchor instead of window.open (which mobile/standalone
+  // browsers often block)
+  const a = document.createElement('a');
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 function copyUrl(url) {
@@ -2067,6 +2122,131 @@ async function quickAddClicked() {
       if (aiEnabled()) fireFolderSuggestion(url, url);
     }
   } catch (_) { /* clipboard permission denied — fine */ }
+}
+
+// ─────────────────────────────────────────────
+// BULK ADD — paste many links at once, auto-detect each URL + title
+// ─────────────────────────────────────────────
+function parseBulkText(text) {
+  const results = [];
+  const seen = new Set();
+  const urlRe = /https?:\/\/[^\s"'<>]+/g;
+
+  (text || '').split(/\r?\n/).forEach(line => {
+    const urls = line.match(urlRe);
+    if (!urls) return;
+    // whatever text is left on the line (after removing the links) becomes the title
+    const leftover = line.replace(urlRe, ' ').replace(/[\s\-–—:,.|]+/g, ' ').trim();
+    urls.forEach((raw, idx) => {
+      const url = raw.replace(/[),.;:!?\]]+$/, '');
+      if (seen.has(url)) return;
+      let domain = '';
+      try { domain = new URL(url).hostname; } catch (_) { return; }
+      seen.add(url);
+      const title = (idx === 0 && leftover) ? leftover : domain.replace(/^www\./, '');
+      results.push({ url, title, domain });
+    });
+  });
+  return results;
+}
+
+function openBulkAdd() {
+  document.getElementById('bulkadd-text').value = '';
+  document.getElementById('bulkadd-new-folder').value = '';
+  document.getElementById('bulkadd-new-folder').style.display = 'none';
+  document.getElementById('bulk-add-msg').className = 'msg';
+  document.getElementById('bulkadd-progress-wrap').style.display = 'none';
+  document.getElementById('bulkadd-progress-bar').style.width = '0%';
+  document.getElementById('bulkadd-save-btn').disabled = false;
+  populateFolderSelect(document.getElementById('bulkadd-folder'), null);
+  document.getElementById('bulkadd-modal').classList.add('open');
+  updateBulkPreview();
+
+  // Prefill from clipboard when it contains links
+  navigator.clipboard.readText().then(text => {
+    const box = document.getElementById('bulkadd-text');
+    if (text && /https?:\/\//.test(text) && !box.value) {
+      box.value = text;
+      updateBulkPreview();
+    }
+  }).catch(() => {});
+}
+
+function closeBulkAdd() {
+  document.getElementById('bulkadd-modal').classList.remove('open');
+}
+
+function bulkAddFolderChanged() {
+  const isNew = document.getElementById('bulkadd-folder').value === '__new__';
+  document.getElementById('bulkadd-new-folder').style.display = isNew ? 'block' : 'none';
+  if (isNew) document.getElementById('bulkadd-new-folder').focus();
+}
+
+function getBulkAddFolder() {
+  const v = document.getElementById('bulkadd-folder').value;
+  if (v === '__none__') return [];
+  if (v === '__new__') {
+    return document.getElementById('bulkadd-new-folder').value
+      .split('/').map(s => s.trim()).filter(Boolean);
+  }
+  try { return JSON.parse(v); } catch (_) { return []; }
+}
+
+function updateBulkPreview() {
+  const parsed = parseBulkText(document.getElementById('bulkadd-text').value);
+  const el = document.getElementById('bulkadd-count');
+  if (!parsed.length) { el.textContent = 'לא זוהו קישורים עדיין'; return; }
+  const newCount = parsed.filter(p => !findByUrl(p.url)).length;
+  const dup = parsed.length - newCount;
+  el.textContent = `זוהו ${parsed.length} קישורים` + (dup ? ` · ${newCount} חדשים, ${dup} כבר קיימים` : '');
+}
+
+async function saveBulkLinks() {
+  const msg = document.getElementById('bulk-add-msg');
+  const parsed = parseBulkText(document.getElementById('bulkadd-text').value);
+  if (!parsed.length) { showMsg(msg, 'לא זוהו קישורים בטקסט', 'error'); return; }
+
+  const folder_path = getBulkAddFolder();
+  const toSave = parsed.filter(p => !findByUrl(p.url));
+  if (!toSave.length) { showMsg(msg, 'כל הקישורים כבר שמורים', 'success'); return; }
+
+  const btn = document.getElementById('bulkadd-save-btn');
+  btn.disabled = true;
+  const wrap = document.getElementById('bulkadd-progress-wrap');
+  const bar = document.getElementById('bulkadd-progress-bar');
+  wrap.style.display = 'block';
+  bar.style.width = '0%';
+
+  const rows = toSave.map(p => {
+    let domain = '';
+    try { domain = new URL(p.url).hostname; } catch (_) {}
+    return { user_id: currentUser.id, title: p.title || p.url, url: p.url, folder_path, domain };
+  });
+
+  const BATCH = 50;
+  let saved = 0;
+  try {
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const batch = rows.slice(i, i + BATCH);
+      const { data, error } = await sbClient.from('bookmarks')
+        .upsert(batch, { onConflict: 'user_id,url', ignoreDuplicates: true })
+        .select();
+      if (error) throw error;
+      (data || []).forEach(b => allBookmarks.push(b));
+      saved += (data || []).length;
+      bar.style.width = Math.round(((i + batch.length) / rows.length) * 100) + '%';
+    }
+  } catch (e) {
+    btn.disabled = false;
+    console.error(e);
+    showMsg(msg, 'שגיאה בשמירה: ' + (e.message || ''), 'error');
+    return;
+  }
+
+  refreshViews();
+  closeBulkAdd();
+  const skipped = parsed.length - saved;
+  showToast(`✅ נשמרו ${saved} קישורים` + (skipped > 0 ? ` · ${skipped} כבר קיימים` : ''), 'success');
 }
 
 // ─────────────────────────────────────────────
