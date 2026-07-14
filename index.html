@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BookmarkSync — מנהל סימניות חכם</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0d0d0f">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -739,6 +743,148 @@
   /* Folder tree indentation */
   .folder-children { display: none; }
   .folder-children.open { display: block; }
+
+  /* ── MODALS ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal-card {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    padding: 1.75rem;
+    width: 100%;
+    max-width: 460px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-card h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.4rem; }
+  .modal-card > p { color: var(--text2); font-size: 0.85rem; margin-bottom: 1.25rem; line-height: 1.6; }
+
+  .modal-card.wide { max-width: 640px; }
+
+  .field select {
+    width: 100%;
+    padding: 0.7rem 0.875rem;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 0.9rem;
+    outline: none;
+  }
+  .field select:focus { border-color: var(--accent); }
+
+  .field input.rtl-input { direction: rtl; text-align: right; }
+
+  .modal-actions { display: flex; gap: 0.6rem; margin-top: 1.25rem; }
+  .modal-actions .btn-primary, .modal-actions .btn-secondary { margin-top: 0; flex: 1; justify-content: center; }
+
+  .ai-chip {
+    display: none;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent-glow);
+    border-radius: 20px;
+    padding: 0.3rem 0.75rem;
+    font-size: 0.78rem;
+    color: var(--accent2);
+    cursor: pointer;
+    margin-top: 0.5rem;
+    max-width: 100%;
+  }
+  .ai-chip.show { display: inline-flex; }
+  .ai-chip .spinner { width: 12px; height: 12px; border-width: 2px; }
+
+  .dup-banner {
+    display: none;
+    background: rgba(245,158,11,0.1);
+    border: 1px solid rgba(245,158,11,0.35);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    color: #fcd34d;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+  }
+  .dup-banner.show { display: block; }
+  .dup-banner .dup-actions { display: flex; gap: 0.5rem; margin-top: 0.6rem; }
+
+  .warn-banner {
+    background: rgba(245,158,11,0.1);
+    border: 1px solid rgba(245,158,11,0.35);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    font-size: 0.8rem;
+    color: #fcd34d;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+  }
+
+  .review-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 0.25rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+  }
+  .review-row .rv-title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .review-row select {
+    max-width: 180px;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 0.78rem;
+    padding: 0.3rem 0.4rem;
+    outline: none;
+  }
+
+  .suggestion-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.75rem 0.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .suggestion-row .sg-body { flex: 1; min-width: 0; }
+  .suggestion-row .sg-title { font-size: 0.9rem; font-weight: 500; margin-bottom: 0.15rem; }
+  .suggestion-row .sg-url { font-size: 0.75rem; color: var(--accent2); direction: ltr; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .suggestion-row .sg-reason { font-size: 0.78rem; color: var(--text2); margin-top: 0.2rem; }
+  .suggestion-row .sg-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+
+  .search-ai-toggle {
+    background: transparent;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 6px;
+    opacity: 0.45;
+    transition: all 0.2s;
+  }
+  .search-ai-toggle:hover { opacity: 0.8; }
+  .search-ai-toggle.active { opacity: 1; background: var(--accent-dim); }
 </style>
 </head>
 <body>
@@ -795,7 +941,7 @@
   folder_path TEXT[] DEFAULT '{}',
   domain TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  hash TEXT UNIQUE
+  UNIQUE (user_id, url)
 );
 
 ALTER TABLE bookmarks ENABLE ROW LEVEL SECURITY;
@@ -803,8 +949,7 @@ ALTER TABLE bookmarks ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users own bookmarks" ON bookmarks
   FOR ALL USING (auth.uid() = user_id);
 
-CREATE INDEX ON bookmarks(user_id);
-CREATE INDEX ON bookmarks(hash);</code>
+CREATE INDEX ON bookmarks(user_id);</code>
     </div>
 
     <div class="field">
@@ -868,10 +1013,13 @@ CREATE INDEX ON bookmarks(hash);</code>
 
     <div class="topbar-search">
       <span style="font-size:14px; color:var(--text3);">🔍</span>
-      <input type="text" id="search-input" placeholder="חיפוש בסימניות..." oninput="filterBookmarks()" />
+      <input type="text" id="search-input" placeholder="חיפוש בסימניות..." oninput="filterBookmarks()" onkeydown="if(event.key==='Enter')runSmartSearch()" />
+      <button class="search-ai-toggle" id="smart-search-toggle" title="חיפוש חכם עם AI (Enter להפעלה)" onclick="toggleSmartSearch()" style="display:none;">✨</button>
     </div>
 
     <div class="topbar-actions">
+      <button class="icon-btn" title="הוסף סימנייה" onclick="quickAddClicked()">➕</button>
+      <button class="icon-btn" title="הגדרות AI" onclick="openAISettings()">⚙️</button>
       <div class="user-chip" onclick="signOut()">
         <div class="user-dot"></div>
         <span id="user-email-short">משתמש</span>
@@ -894,6 +1042,11 @@ CREATE INDEX ON bookmarks(hash);</code>
         <div class="sidebar-item" id="nav-recent" onclick="setView('recent')">
           <span class="icon">🕐</span>
           <span>לאחרונה</span>
+        </div>
+        <div class="sidebar-item" id="nav-organize" onclick="startBulkOrganize()" style="display:none;">
+          <span class="icon">✨</span>
+          <span>ארגון אוטומטי</span>
+          <span class="sidebar-count" id="count-unorganized">0</span>
         </div>
       </div>
 
@@ -967,6 +1120,9 @@ CREATE INDEX ON bookmarks(hash);</code>
           <p id="view-subtitle">טוען...</p>
         </div>
         <div class="header-actions">
+          <button class="btn-secondary" id="discover-btn" style="display:none;" onclick="startDiscover()">
+            ✨ גלה עוד
+          </button>
           <button class="btn-secondary" onclick="document.getElementById('import-file').click()">
             📂 ייבוא נוסף
           </button>
@@ -988,6 +1144,117 @@ CREATE INDEX ON bookmarks(hash);</code>
 <!-- Toast -->
 <div id="toast"></div>
 
+<!-- QUICK SAVE MODAL -->
+<div class="modal-overlay" id="quicksave-modal">
+  <div class="modal-card">
+    <h2>🔖 שמירת סימנייה</h2>
+    <p id="qs-subtitle">שמור קישור חדש לאוסף שלך</p>
+
+    <div class="dup-banner" id="qs-dup-banner">
+      <span id="qs-dup-text"></span>
+      <div class="dup-actions">
+        <button class="btn-secondary" style="padding:0.35rem 0.8rem; font-size:0.78rem;" onclick="openBookmark(document.getElementById('qs-url').value.trim())">פתח ↗</button>
+        <button class="btn-secondary" style="padding:0.35rem 0.8rem; font-size:0.78rem;" id="qs-dup-update" onclick="quickSaveSubmit(true)">עדכן תיקייה</button>
+      </div>
+    </div>
+
+    <div class="msg" id="qs-msg"></div>
+
+    <div class="field">
+      <label>קישור (URL)</label>
+      <input type="url" id="qs-url" placeholder="https://..." oninput="quickSaveUrlChanged()" />
+    </div>
+
+    <div class="field">
+      <label>כותרת</label>
+      <input type="text" id="qs-title" class="rtl-input" placeholder="שם הסימנייה" />
+      <button class="btn-secondary" id="qs-clean-title" style="display:none; margin-top:0.5rem; padding:0.35rem 0.8rem; font-size:0.78rem;" onclick="cleanTitleClicked()">✨ נקה כותרת</button>
+    </div>
+
+    <div class="field">
+      <label>תיקייה</label>
+      <select id="qs-folder" onchange="quickSaveFolderChanged()"></select>
+      <input type="text" id="qs-new-folder" class="rtl-input" placeholder="שם תיקייה חדשה (אפשר גם אב/בן)" style="display:none; margin-top:0.5rem;" />
+      <div class="ai-chip" id="qs-ai-chip" onclick="applyAISuggestion()"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-primary" id="qs-save-btn" onclick="quickSaveSubmit()">שמור</button>
+      <button class="btn-secondary" onclick="closeQuickSave()">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI SETTINGS MODAL -->
+<div class="modal-overlay" id="ai-settings-modal">
+  <div class="modal-card">
+    <h2>⚙️ הגדרות AI</h2>
+    <p>חבר מודל שפה עם מפתח API משלך. המפתח נשמר רק על המכשיר שלך.</p>
+
+    <div class="msg" id="ai-msg"></div>
+
+    <div class="field">
+      <label>ספק</label>
+      <select id="ai-provider" onchange="aiProviderChanged()">
+        <option value="nvidia">NVIDIA (build.nvidia.com)</option>
+        <option value="fireworks">Fireworks AI</option>
+        <option value="custom">מותאם אישית (OpenAI-compatible)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Base URL</label>
+      <input type="url" id="ai-base-url" placeholder="https://..." />
+    </div>
+
+    <div class="field">
+      <label>API Key</label>
+      <input type="password" id="ai-api-key" placeholder="nvapi-... / fw_..." />
+    </div>
+
+    <div class="field">
+      <label>שם מודל</label>
+      <input type="text" id="ai-model" placeholder="meta/llama-3.1-70b-instruct" />
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="testAIConnection()">🔌 בדוק חיבור</button>
+      <button class="btn-primary" onclick="saveAISettings()">שמור</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="clearAISettings()">🗑 נקה הגדרות</button>
+      <button class="btn-secondary" onclick="closeAISettings()">סגור</button>
+    </div>
+  </div>
+</div>
+
+<!-- BULK ORGANIZE REVIEW MODAL -->
+<div class="modal-overlay" id="bulk-review-modal">
+  <div class="modal-card wide">
+    <h2>✨ ארגון אוטומטי — אישור</h2>
+    <p>ה-AI הציע תיקיות לסימניות ללא תיקייה. סמן מה לאשר, ואפשר לשנות תיקייה לכל שורה. שום דבר לא נשמר בלי אישור.</p>
+    <div class="msg" id="bulk-msg"></div>
+    <div id="bulk-review-rows" style="max-height:50vh; overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="applyBulkOrganize()">אשר מסומנים</button>
+      <button class="btn-secondary" onclick="closeBulkReview()">בטל</button>
+    </div>
+  </div>
+</div>
+
+<!-- DISCOVER MODAL -->
+<div class="modal-overlay" id="discover-modal">
+  <div class="modal-card wide">
+    <h2>✨ גלה עוד לתיקייה <span id="discover-folder-name"></span></h2>
+    <div class="warn-banner">⚠️ הצעות שנוצרו על ידי AI — ייתכן שחלק מהקישורים אינם קיימים. פתח ובדוק לפני שמירה.</div>
+    <div class="msg" id="discover-msg"></div>
+    <div id="discover-rows" style="max-height:50vh; overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeDiscover()">סגור</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ─────────────────────────────────────────────
 // STATE
@@ -1002,6 +1269,18 @@ let currentFolder = null;
 // INIT
 // ─────────────────────────────────────────────
 window.onload = async () => {
+  // Web Share Target: stash the payload before anything else, then strip the
+  // query so reloads/auth redirects don't re-process it
+  if (/[?&](title|text|url)=/.test(location.search)) {
+    const share = extractSharePayload(location.search);
+    if (share) sessionStorage.setItem('pending_share', JSON.stringify(share));
+    history.replaceState(null, '', location.pathname);
+  }
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+
   const url = localStorage.getItem('sb_url');
   const key = localStorage.getItem('sb_key');
 
@@ -1055,6 +1334,13 @@ async function showApp() {
   document.getElementById('user-email-short').textContent = email.split('@')[0];
 
   await loadBookmarks();
+  refreshAIUI();
+
+  const pendingShare = sessionStorage.getItem('pending_share');
+  if (pendingShare) {
+    sessionStorage.removeItem('pending_share');
+    try { openQuickSave(JSON.parse(pendingShare)); } catch (_) {}
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -1149,7 +1435,7 @@ async function loadBookmarks() {
   document.getElementById('loading-indicator').style.display = 'flex';
   document.getElementById('bookmarks-grid').innerHTML = '';
 
-  const { data, error } = await supabase
+  const { data, error } = await sbClient
     .from('bookmarks')
     .select('*')
     .eq('user_id', currentUser.id)
@@ -1164,19 +1450,7 @@ async function loadBookmarks() {
   }
 
   allBookmarks = data || [];
-
-  if (allBookmarks.length === 0) {
-    document.getElementById('upload-zone').style.display = 'block';
-    document.getElementById('stats-bar').style.display = 'none';
-    document.getElementById('content-header').style.display = 'none';
-  } else {
-    document.getElementById('upload-zone').style.display = 'none';
-    document.getElementById('stats-bar').style.display = 'grid';
-    document.getElementById('content-header').style.display = 'flex';
-    updateStats();
-    buildFolderTree();
-    renderBookmarks();
-  }
+  refreshViews();
 }
 
 // ─────────────────────────────────────────────
@@ -1205,6 +1479,8 @@ function updateStats() {
     document.getElementById('stat-last').textContent =
       d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
   }
+
+  refreshAIUI();
 }
 
 // ─────────────────────────────────────────────
@@ -1269,6 +1545,7 @@ function selectFolder(path, id) {
   document.getElementById(id)?.classList.add('active');
 
   document.getElementById('view-title').textContent = '📁 ' + path[path.length - 1];
+  refreshAIUI();
   renderBookmarks();
 }
 
@@ -1286,6 +1563,7 @@ function setView(view) {
   if (view === 'all') document.getElementById('view-title').textContent = 'כל הסימניות';
   if (view === 'recent') document.getElementById('view-title').textContent = 'סימניות אחרונות';
 
+  refreshAIUI();
   renderBookmarks();
 }
 
@@ -1306,7 +1584,10 @@ function renderBookmarks() {
     items = items.slice(0, 50);
   }
 
-  if (search) {
+  if (smartSearchResults) {
+    // AI search results: the input holds the natural-language query, so skip substring filtering
+    items = items.filter(b => smartSearchResults.has(b.id));
+  } else if (search) {
     items = items.filter(b =>
       b.title.toLowerCase().includes(search) ||
       b.url.toLowerCase().includes(search) ||
@@ -1314,7 +1595,8 @@ function renderBookmarks() {
     );
   }
 
-  document.getElementById('view-subtitle').textContent = `${items.length} סימניות`;
+  document.getElementById('view-subtitle').textContent =
+    smartSearchResults ? `✨ ${items.length} תוצאות חיפוש חכם` : `${items.length} סימניות`;
 
   const grid = document.getElementById('bookmarks-grid');
 
@@ -1366,6 +1648,8 @@ function copyUrl(url) {
 }
 
 function filterBookmarks() {
+  // Typing a new query invalidates previous AI search results
+  smartSearchResults = null;
   renderBookmarks();
 }
 
@@ -1416,16 +1700,21 @@ async function importBookmarks(input) {
   document.getElementById('progress-num').textContent = `0 / ${bookmarks.length}`;
   document.getElementById('progress-status').textContent = 'בודק כפילויות...';
 
-  // Fetch existing hashes to avoid duplicates
-  const { data: existing } = await supabase
+  // Fetch existing URLs to avoid duplicates
+  const { data: existing } = await sbClient
     .from('bookmarks')
-    .select('hash')
+    .select('url')
     .eq('user_id', currentUser.id);
 
-  const existingHashes = new Set((existing || []).map(e => e.hash));
+  const existingUrls = new Set((existing || []).map(e => e.url));
 
-  // Filter new bookmarks
-  const toInsert = bookmarks.filter(b => !existingHashes.has(b.hash));
+  // Filter new bookmarks (dedup within the file too)
+  const seen = new Set();
+  const toInsert = bookmarks.filter(b => {
+    if (existingUrls.has(b.url) || seen.has(b.url)) return false;
+    seen.add(b.url);
+    return true;
+  });
 
   if (toInsert.length === 0) {
     progressEl.style.display = 'none';
@@ -1443,11 +1732,11 @@ async function importBookmarks(input) {
       title: b.title,
       url: b.url,
       folder_path: b.folder_path,
-      domain: b.domain,
-      hash: b.hash
+      domain: b.domain
     }));
 
-    const { error } = await sbClient.from('bookmarks').insert(batch);
+    const { error } = await sbClient.from('bookmarks')
+      .upsert(batch, { onConflict: 'user_id,url', ignoreDuplicates: true });
 
     if (error) {
       console.error(error);
@@ -1496,14 +1785,11 @@ function parseBookmarkFolder(node, path, results) {
       let domain = '';
       try { domain = new URL(url).hostname; } catch (_) {}
 
-      const hash = btoa(encodeURIComponent(url)).substring(0, 64);
-
       results.push({
         title,
         url,
         folder_path: [...path],
-        domain,
-        hash
+        domain
       });
     }
 
@@ -1518,6 +1804,788 @@ function parseBookmarkFolder(node, path, results) {
       }
     }
   }
+}
+
+// ─────────────────────────────────────────────
+// SHARE TARGET
+// ─────────────────────────────────────────────
+function extractUrlFromText(text) {
+  const m = (text || '').match(/https?:\/\/[^\s"'<>]+/);
+  if (!m) return null;
+  return m[0].replace(/[),.;:!?\]]+$/, '');
+}
+
+function extractSharePayload(qs) {
+  const p = new URLSearchParams(qs);
+  let url = (p.get('url') || '').trim();
+  let title = (p.get('title') || '').trim();
+  const text = (p.get('text') || '').trim();
+
+  // Android usually crams "Title https://url" into the text param
+  if (!url) {
+    const found = extractUrlFromText(text);
+    if (found) {
+      url = found;
+      if (!title) {
+        // remove the raw match (incl. trailing punctuation) and leftover separators
+        title = text.replace(/https?:\/\/[^\s"'<>]+/, '')
+          .replace(/^[\s\-–—:,.|]+|[\s\-–—:,.|]+$/g, '');
+      }
+    }
+  }
+  if (!title && text) title = text;
+
+  if (!url && !title && !text) return null;
+  return { url, title: title || url, rawText: text };
+}
+
+// ─────────────────────────────────────────────
+// QUICK SAVE
+// ─────────────────────────────────────────────
+let qsAISuggestion = null;
+let qsOriginalTitle = null;
+let qsSuggestionSeq = 0;
+
+function getAllFolderPaths() {
+  const paths = new Set();
+  allBookmarks.forEach(b => {
+    const p = b.folder_path || [];
+    for (let i = 1; i <= p.length; i++) paths.add(JSON.stringify(p.slice(0, i)));
+  });
+  return [...paths].map(s => JSON.parse(s))
+    .sort((a, b) => a.join('/').localeCompare(b.join('/'), 'he'));
+}
+
+function findByUrl(url) {
+  return allBookmarks.find(b => b.url === url);
+}
+
+function populateFolderSelect(sel, selectedPath) {
+  const selectedJson = selectedPath && selectedPath.length ? JSON.stringify(selectedPath) : null;
+  const opts = ['<option value="__none__">ללא תיקייה</option>'];
+  getAllFolderPaths().forEach(path => {
+    const v = JSON.stringify(path);
+    const isSel = v === selectedJson ? ' selected' : '';
+    opts.push(`<option value="${escHtml(v)}"${isSel}>${escHtml(path.join(' › '))}</option>`);
+  });
+  opts.push('<option value="__new__">➕ תיקייה חדשה...</option>');
+  sel.innerHTML = opts.join('');
+}
+
+function openQuickSave(prefill = {}) {
+  qsAISuggestion = null;
+  qsOriginalTitle = null;
+
+  let url = (prefill.url || '').trim();
+  let title = (prefill.title || '').trim();
+  if (url && title === url) title = '';
+
+  document.getElementById('qs-url').value = url;
+  document.getElementById('qs-title').value = title;
+  document.getElementById('qs-new-folder').value = '';
+  document.getElementById('qs-new-folder').style.display = 'none';
+  document.getElementById('qs-msg').className = 'msg';
+  document.getElementById('qs-ai-chip').className = 'ai-chip';
+  document.getElementById('qs-clean-title').style.display = aiEnabled() ? 'inline-flex' : 'none';
+
+  const sub = document.getElementById('qs-subtitle');
+  sub.textContent = url ? 'שמור קישור חדש לאוסף שלך'
+    : (prefill.rawText ? 'לא זוהתה כתובת בשיתוף — הדבק קישור ידנית' : 'שמור קישור חדש לאוסף שלך');
+
+  populateFolderSelect(document.getElementById('qs-folder'), prefill.folder_path);
+
+  document.getElementById('quicksave-modal').classList.add('open');
+  quickSaveUrlChanged();
+
+  if (url && aiEnabled() && !(prefill.folder_path && prefill.folder_path.length)) {
+    fireFolderSuggestion(title || url, url);
+  }
+
+  if (!url) document.getElementById('qs-url').focus();
+}
+
+function closeQuickSave() {
+  document.getElementById('quicksave-modal').classList.remove('open');
+}
+
+function quickSaveUrlChanged() {
+  const url = document.getElementById('qs-url').value.trim();
+  const banner = document.getElementById('qs-dup-banner');
+  const existing = url ? findByUrl(url) : null;
+
+  if (existing) {
+    const folder = (existing.folder_path || []).join(' › ');
+    document.getElementById('qs-dup-text').textContent =
+      folder ? `הקישור כבר שמור בתיקייה "${folder}". אפשר לפתוח אותו או לעדכן את התיקייה.`
+             : 'הקישור כבר שמור (ללא תיקייה). אפשר לפתוח אותו או לעדכן את התיקייה.';
+    banner.classList.add('show');
+    document.getElementById('qs-save-btn').style.display = 'none';
+  } else {
+    banner.classList.remove('show');
+    document.getElementById('qs-save-btn').style.display = '';
+  }
+}
+
+function quickSaveFolderChanged() {
+  const isNew = document.getElementById('qs-folder').value === '__new__';
+  document.getElementById('qs-new-folder').style.display = isNew ? 'block' : 'none';
+  if (isNew) document.getElementById('qs-new-folder').focus();
+}
+
+function getQuickSaveFolder() {
+  const v = document.getElementById('qs-folder').value;
+  if (v === '__none__') return [];
+  if (v === '__new__') {
+    return document.getElementById('qs-new-folder').value
+      .split('/').map(s => s.trim()).filter(Boolean);
+  }
+  try { return JSON.parse(v); } catch (_) { return []; }
+}
+
+async function quickSaveSubmit(updateExisting = false) {
+  const msg = document.getElementById('qs-msg');
+  let url = document.getElementById('qs-url').value.trim();
+
+  // Be forgiving: if the field holds text containing a URL, extract it
+  if (url && !/^https?:\/\//.test(url)) {
+    const found = extractUrlFromText(url);
+    if (found) {
+      url = found;
+      document.getElementById('qs-url').value = url;
+    }
+  }
+
+  if (!/^https?:\/\//.test(url)) {
+    showMsg(msg, 'הכנס כתובת שמתחילה ב-http:// או https://', 'error');
+    return;
+  }
+
+  const title = document.getElementById('qs-title').value.trim() || url;
+  const folder_path = getQuickSaveFolder();
+  const existing = findByUrl(url);
+
+  try {
+    if (existing) {
+      if (!updateExisting) { quickSaveUrlChanged(); return; }
+      const { error } = await sbClient.from('bookmarks')
+        .update({ folder_path })
+        .eq('id', existing.id).eq('user_id', currentUser.id);
+      if (error) throw error;
+      existing.folder_path = folder_path;
+      refreshViews();
+      showToast('התיקייה עודכנה', 'success');
+    } else {
+      const result = await saveBookmark({ title, url, folder_path });
+      showToast(result.status === 'duplicate' ? 'הקישור כבר שמור' : '✅ הסימנייה נשמרה', 'success');
+    }
+    closeQuickSave();
+  } catch (e) {
+    console.error(e);
+    showMsg(msg, 'שגיאה בשמירה: ' + (e.message || ''), 'error');
+  }
+}
+
+async function saveBookmark({ title, url, folder_path }) {
+  let domain = '';
+  try { domain = new URL(url).hostname; } catch (_) {}
+
+  const { data, error } = await sbClient.from('bookmarks')
+    .upsert({
+      user_id: currentUser.id,
+      title: title || url,
+      url,
+      folder_path: folder_path || [],
+      domain
+    }, { onConflict: 'user_id,url', ignoreDuplicates: true })
+    .select();
+
+  if (error) throw error;
+  if (!data || data.length === 0) return { status: 'duplicate' };
+
+  allBookmarks.push(data[0]);
+  refreshViews();
+  return { status: 'saved', bookmark: data[0] };
+}
+
+function refreshViews() {
+  const hasAny = allBookmarks.length > 0;
+  document.getElementById('upload-zone').style.display = hasAny ? 'none' : 'block';
+  document.getElementById('stats-bar').style.display = hasAny ? 'grid' : 'none';
+  document.getElementById('content-header').style.display = hasAny ? 'flex' : 'none';
+  if (hasAny) {
+    updateStats();
+    buildFolderTree();
+    renderBookmarks();
+  }
+}
+
+async function quickAddClicked() {
+  openQuickSave();
+  try {
+    const text = await navigator.clipboard.readText();
+    const url = extractUrlFromText(text);
+    if (url && !document.getElementById('qs-url').value) {
+      document.getElementById('qs-url').value = url;
+      quickSaveUrlChanged();
+      if (aiEnabled()) fireFolderSuggestion(url, url);
+    }
+  } catch (_) { /* clipboard permission denied — fine */ }
+}
+
+// ─────────────────────────────────────────────
+// AI CLIENT
+// ─────────────────────────────────────────────
+const AI_PROVIDERS = {
+  nvidia:    { base: 'https://integrate.api.nvidia.com/v1',        modelHint: 'meta/llama-3.1-70b-instruct' },
+  fireworks: { base: 'https://api.fireworks.ai/inference/v1',      modelHint: 'accounts/fireworks/models/llama-v3p1-70b-instruct' },
+  custom:    { base: '',                                           modelHint: '' }
+};
+
+class AIError extends Error {
+  constructor(kind, status, detail) {
+    super(kind + (status ? ' ' + status : ''));
+    this.kind = kind;
+    this.status = status;
+    this.detail = detail;
+  }
+}
+
+function getAIConfig() {
+  const baseUrl = localStorage.getItem('ai_base_url');
+  const apiKey = localStorage.getItem('ai_api_key');
+  const model = localStorage.getItem('ai_model');
+  if (!baseUrl || !apiKey || !model) return null;
+  return { baseUrl, apiKey, model, provider: localStorage.getItem('ai_provider') || 'custom' };
+}
+
+function aiEnabled() {
+  return !!getAIConfig();
+}
+
+async function chatCompletion(messages, { json = false, temperature = 0.2, maxTokens = 1024 } = {}) {
+  const cfg = getAIConfig();
+  if (!cfg) throw new AIError('unconfigured');
+
+  let res;
+  try {
+    res = await fetch(cfg.baseUrl.replace(/\/+$/, '') + '/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + cfg.apiKey
+      },
+      body: JSON.stringify({
+        model: cfg.model,
+        messages,
+        temperature,
+        max_tokens: maxTokens,
+        ...(json ? { response_format: { type: 'json_object' } } : {})
+      })
+    });
+  } catch (e) {
+    throw new AIError('network'); // usually CORS or offline
+  }
+
+  if (!res.ok) {
+    let detail = '';
+    try { detail = await res.text(); } catch (_) {}
+    // Some providers reject response_format entirely — retry once without it
+    if (json && res.status === 400 && /response_format/i.test(detail)) {
+      return chatCompletionNoFormat(messages, { temperature, maxTokens });
+    }
+    throw new AIError('http', res.status, detail);
+  }
+
+  const body = await res.json();
+  const content = body.choices?.[0]?.message?.content ?? '';
+  return json ? parseLLMJson(content) : content;
+}
+
+async function chatCompletionNoFormat(messages, { temperature, maxTokens }) {
+  const cfg = getAIConfig();
+  const res = await fetch(cfg.baseUrl.replace(/\/+$/, '') + '/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.apiKey },
+    body: JSON.stringify({ model: cfg.model, messages, temperature, max_tokens: maxTokens })
+  });
+  if (!res.ok) throw new AIError('http', res.status);
+  const body = await res.json();
+  return parseLLMJson(body.choices?.[0]?.message?.content ?? '');
+}
+
+function parseLLMJson(s) {
+  let text = String(s).trim();
+  const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fence) text = fence[1].trim();
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start === -1 || end === -1 || end <= start) throw new AIError('badjson');
+  try {
+    return JSON.parse(text.slice(start, end + 1));
+  } catch (_) {
+    throw new AIError('badjson');
+  }
+}
+
+function aiErrorMessage(e) {
+  if (!(e instanceof AIError)) return 'שגיאת AI לא צפויה';
+  switch (e.kind) {
+    case 'unconfigured': return 'הגדר AI קודם (כפתור ⚙️)';
+    case 'network': return 'הבקשה נחסמה — כנראה חסימת CORS מצד הספק, או שאין חיבור. נסה ספק אחר.';
+    case 'badjson': return 'המודל החזיר תשובה לא תקינה — נסה שוב או החלף מודל';
+    case 'http':
+      if (e.status === 401 || e.status === 403) return 'מפתח ה-API שגוי או לא מורשה';
+      if (e.status === 404) return 'המודל או ה-Base URL שגויים';
+      if (e.status === 429) return 'חריגה ממכסת הבקשות (rate limit) — נסה שוב עוד רגע';
+      return 'שגיאת שרת מהספק (' + e.status + ')';
+    default: return 'שגיאת AI';
+  }
+}
+
+// Toggle every AI affordance according to config + current state
+function refreshAIUI() {
+  const on = aiEnabled();
+  document.getElementById('smart-search-toggle').style.display = on ? '' : 'none';
+
+  const unorganized = allBookmarks.filter(b => !(b.folder_path || []).length).length;
+  const navOrganize = document.getElementById('nav-organize');
+  navOrganize.style.display = (on && unorganized > 0) ? '' : 'none';
+  document.getElementById('count-unorganized').textContent = unorganized;
+
+  document.getElementById('discover-btn').style.display =
+    (on && currentView === 'folder' && currentFolder) ? '' : 'none';
+}
+
+// ─────────────────────────────────────────────
+// AI SETTINGS
+// ─────────────────────────────────────────────
+function openAISettings() {
+  const provider = localStorage.getItem('ai_provider') || 'nvidia';
+  document.getElementById('ai-provider').value = provider;
+  document.getElementById('ai-base-url').value = localStorage.getItem('ai_base_url') || AI_PROVIDERS[provider].base;
+  document.getElementById('ai-api-key').value = localStorage.getItem('ai_api_key') || '';
+  document.getElementById('ai-model').value = localStorage.getItem('ai_model') || '';
+  document.getElementById('ai-model').placeholder = AI_PROVIDERS[provider].modelHint || 'model-name';
+  document.getElementById('ai-msg').className = 'msg';
+  document.getElementById('ai-settings-modal').classList.add('open');
+}
+
+function closeAISettings() {
+  document.getElementById('ai-settings-modal').classList.remove('open');
+  refreshAIUI();
+}
+
+function aiProviderChanged() {
+  const provider = document.getElementById('ai-provider').value;
+  document.getElementById('ai-base-url').value = AI_PROVIDERS[provider].base;
+  document.getElementById('ai-model').placeholder = AI_PROVIDERS[provider].modelHint || 'model-name';
+}
+
+function saveAISettings() {
+  const msg = document.getElementById('ai-msg');
+  const baseUrl = document.getElementById('ai-base-url').value.trim();
+  const apiKey = document.getElementById('ai-api-key').value.trim();
+  const model = document.getElementById('ai-model').value.trim();
+
+  if (!baseUrl || !apiKey || !model) {
+    showMsg(msg, 'מלא Base URL, מפתח API ושם מודל', 'error');
+    return;
+  }
+
+  localStorage.setItem('ai_provider', document.getElementById('ai-provider').value);
+  localStorage.setItem('ai_base_url', baseUrl);
+  localStorage.setItem('ai_api_key', apiKey);
+  localStorage.setItem('ai_model', model);
+  showMsg(msg, '✅ נשמר! אפשר לבדוק חיבור.', 'success');
+  refreshAIUI();
+}
+
+function clearAISettings() {
+  ['ai_provider', 'ai_base_url', 'ai_api_key', 'ai_model'].forEach(k => localStorage.removeItem(k));
+  document.getElementById('ai-api-key').value = '';
+  document.getElementById('ai-model').value = '';
+  showMsg(document.getElementById('ai-msg'), 'ההגדרות נוקו', 'success');
+  refreshAIUI();
+}
+
+async function testAIConnection() {
+  const msg = document.getElementById('ai-msg');
+  saveAISettings();
+  if (!aiEnabled()) return;
+
+  showMsg(msg, '⏳ בודק חיבור...', 'success');
+  try {
+    await chatCompletion([{ role: 'user', content: 'Reply with the single word: ok' }], { maxTokens: 10 });
+    showMsg(msg, '✅ החיבור עובד! ה-AI מוכן לשימוש.', 'success');
+  } catch (e) {
+    showMsg(msg, aiErrorMessage(e), 'error');
+  }
+}
+
+// ─────────────────────────────────────────────
+// AI: FOLDER SUGGESTION + TITLE CLEANUP
+// ─────────────────────────────────────────────
+async function fireFolderSuggestion(title, url) {
+  const chip = document.getElementById('qs-ai-chip');
+  const seq = ++qsSuggestionSeq;
+  chip.className = 'ai-chip show';
+  chip.innerHTML = '<div class="spinner"></div> ה-AI מחפש תיקייה מתאימה...';
+
+  try {
+    const suggestion = await suggestFolder(title, url);
+    if (seq !== qsSuggestionSeq) return; // modal was reopened meanwhile
+    if (!suggestion || !suggestion.folder.length) {
+      chip.className = 'ai-chip';
+      return;
+    }
+    qsAISuggestion = suggestion;
+    chip.innerHTML = '✨ הצעת AI: ' + escHtml(suggestion.folder.join(' › ')) +
+      (suggestion.is_new ? ' (חדשה)' : '') + ' — לחץ להחלה';
+    applyAISuggestion();
+  } catch (e) {
+    if (seq !== qsSuggestionSeq) return;
+    chip.className = 'ai-chip';
+    console.warn('folder suggestion failed:', e);
+  }
+}
+
+function applyAISuggestion() {
+  if (!qsAISuggestion) return;
+  const sel = document.getElementById('qs-folder');
+  const v = JSON.stringify(qsAISuggestion.folder);
+  const opt = [...sel.options].find(o => o.value === v);
+
+  if (opt) {
+    sel.value = v;
+    document.getElementById('qs-new-folder').style.display = 'none';
+  } else {
+    sel.value = '__new__';
+    const input = document.getElementById('qs-new-folder');
+    input.style.display = 'block';
+    input.value = qsAISuggestion.folder.join('/');
+  }
+}
+
+async function suggestFolder(title, url) {
+  const folders = getAllFolderPaths();
+  const tree = folders.map(p => p.join(' / ')).join('\n') || '(no folders yet)';
+  let domain = '';
+  try { domain = new URL(url).hostname; } catch (_) {}
+
+  const result = await chatCompletion([
+    { role: 'system', content: 'You organize bookmarks into an existing folder tree. Titles may be in Hebrew or English.' },
+    { role: 'user', content:
+`Folder tree (one path per line, levels separated by " / "):
+${tree}
+
+Bookmark: title="${title}", url="${url}" (domain: ${domain})
+
+Pick the single best existing folder for this bookmark. Only if nothing fits, propose ONE new folder (short name, same language as the user's folders).
+Reply with JSON only: {"folder": ["level1", "level2"], "is_new": false}` }
+  ], { json: true, maxTokens: 200 });
+
+  let folder = Array.isArray(result.folder) ? result.folder.map(String).map(s => s.trim()).filter(Boolean) : [];
+  const is_new = !!result.is_new;
+
+  // A suggested "existing" folder must actually exist
+  if (!is_new && folder.length) {
+    const v = JSON.stringify(folder);
+    if (!folders.some(p => JSON.stringify(p) === v)) return null;
+  }
+
+  return folder.length ? { folder, is_new } : null;
+}
+
+async function cleanTitleClicked() {
+  const btn = document.getElementById('qs-clean-title');
+  const input = document.getElementById('qs-title');
+
+  // Second click = undo
+  if (qsOriginalTitle !== null) {
+    input.value = qsOriginalTitle;
+    qsOriginalTitle = null;
+    btn.textContent = '✨ נקה כותרת';
+    return;
+  }
+
+  const title = input.value.trim();
+  const url = document.getElementById('qs-url').value.trim();
+  if (!title) return;
+
+  btn.textContent = '⏳ מנקה...';
+  try {
+    const result = await chatCompletion([
+      { role: 'user', content:
+`Shorten and clean this bookmark title: remove site-name suffixes, SEO/marketing cruft and tracking junk. Keep the original language (Hebrew stays Hebrew). Max 60 characters.
+Title: "${title}"
+URL: "${url}"
+Reply with JSON only: {"title": "..."}` }
+    ], { json: true, maxTokens: 150 });
+
+    const cleaned = String(result.title || '').trim();
+    if (cleaned && cleaned !== title) {
+      qsOriginalTitle = title;
+      input.value = cleaned;
+      btn.textContent = '↩️ בטל ניקוי';
+    } else {
+      btn.textContent = '✨ נקה כותרת';
+      showToast('הכותרת כבר נקייה', 'success');
+    }
+  } catch (e) {
+    btn.textContent = '✨ נקה כותרת';
+    showToast(aiErrorMessage(e), 'error');
+  }
+}
+
+// ─────────────────────────────────────────────
+// AI: SMART SEARCH
+// ─────────────────────────────────────────────
+let smartSearchResults = null; // Set of bookmark UUIDs, or null when inactive
+let smartSearchMode = false;
+
+function toggleSmartSearch() {
+  smartSearchMode = !smartSearchMode;
+  document.getElementById('smart-search-toggle').classList.toggle('active', smartSearchMode);
+  const input = document.getElementById('search-input');
+  input.placeholder = smartSearchMode ? 'תאר מה אתה מחפש ולחץ Enter... ✨' : 'חיפוש בסימניות...';
+  if (!smartSearchMode) {
+    smartSearchResults = null;
+    renderBookmarks();
+  }
+  input.focus();
+}
+
+async function runSmartSearch() {
+  if (!smartSearchMode || !aiEnabled()) return;
+  const query = document.getElementById('search-input').value.trim();
+  if (!query) return;
+
+  showToast('✨ מחפש עם AI...', 'success');
+
+  // Compact corpus: batch index | title | domain | folders (indexes save tokens vs UUIDs)
+  const lines = allBookmarks.map((b, i) =>
+    `${i}|${(b.title || '').slice(0, 80)}|${b.domain || ''}|${(b.folder_path || []).join('/')}`);
+
+  const CHUNK = 300;
+  const matched = new Set();
+
+  try {
+    for (let i = 0; i < lines.length; i += CHUNK) {
+      const chunk = lines.slice(i, i + CHUNK);
+      const result = await chatCompletion([
+        { role: 'system', content: 'You match a natural-language query (Hebrew or English) against a bookmark list. Match by meaning, not just substring. Be selective — return only genuinely relevant results.' },
+        { role: 'user', content:
+`Query: "${query}"
+
+Bookmarks (id|title|domain|folders):
+${chunk.join('\n')}
+
+Reply with JSON only, up to 20 ids: {"ids": [0, 17]}` }
+      ], { json: true, maxTokens: 300 });
+
+      // each line embeds its global index, so ids map straight into allBookmarks
+      (Array.isArray(result.ids) ? result.ids : []).forEach(id => {
+        if (allBookmarks[Number(id)]) matched.add(allBookmarks[Number(id)].id);
+      });
+    }
+
+    smartSearchResults = matched;
+    renderBookmarks();
+    if (matched.size === 0) showToast('החיפוש החכם לא מצא תוצאות', 'error');
+  } catch (e) {
+    smartSearchResults = null;
+    renderBookmarks();
+    showToast('חיפוש חכם נכשל (' + aiErrorMessage(e) + ') — הוצג חיפוש רגיל', 'error');
+  }
+}
+
+// ─────────────────────────────────────────────
+// AI: BULK ORGANIZE
+// ─────────────────────────────────────────────
+let bulkProposals = []; // { bookmark, folder: [...] }
+
+async function startBulkOrganize() {
+  if (!aiEnabled()) { showToast('הגדר AI קודם (⚙️)', 'error'); return; }
+  const unorganized = allBookmarks.filter(b => !(b.folder_path || []).length);
+  if (!unorganized.length) { showToast('אין סימניות ללא תיקייה', 'success'); return; }
+
+  bulkProposals = [];
+  document.getElementById('bulk-review-rows').innerHTML = '';
+  const msg = document.getElementById('bulk-msg');
+  document.getElementById('bulk-review-modal').classList.add('open');
+  showMsg(msg, `⏳ ה-AI מסווג ${unorganized.length} סימניות...`, 'success');
+
+  const folders = getAllFolderPaths();
+  const tree = folders.map(p => p.join(' / ')).join('\n') || '(no folders yet)';
+  const BATCH = 25;
+
+  try {
+    for (let i = 0; i < unorganized.length; i += BATCH) {
+      const batch = unorganized.slice(i, i + BATCH);
+      const list = batch.map((b, j) => `${j}|${(b.title || '').slice(0, 80)}|${b.domain || ''}`).join('\n');
+
+      const result = await chatCompletion([
+        { role: 'system', content: 'You organize bookmarks into a folder tree. Prefer existing folders; propose short new folder names only when nothing fits. Match the language of existing folder names.' },
+        { role: 'user', content:
+`Existing folder tree (one path per line, levels separated by " / "):
+${tree}
+
+Bookmarks to classify (id|title|domain):
+${list}
+
+Assign each bookmark to the best folder.
+Reply with JSON only: {"assignments": [{"id": 0, "folder": ["level1","level2"]}]}` }
+      ], { json: true, maxTokens: 1500 });
+
+      (Array.isArray(result.assignments) ? result.assignments : []).forEach(a => {
+        const b = batch[Number(a.id)];
+        const folder = Array.isArray(a.folder) ? a.folder.map(String).map(s => s.trim()).filter(Boolean) : [];
+        if (b && folder.length) bulkProposals.push({ bookmark: b, folder });
+      });
+
+      showMsg(msg, `⏳ סווגו ${Math.min(i + BATCH, unorganized.length)} מתוך ${unorganized.length}...`, 'success');
+    }
+  } catch (e) {
+    if (!bulkProposals.length) {
+      showMsg(msg, aiErrorMessage(e), 'error');
+      return;
+    }
+    showToast('חלק מהסיווג נכשל — מוצגות ההצעות שהתקבלו', 'error');
+  }
+
+  if (!bulkProposals.length) {
+    showMsg(msg, 'ה-AI לא החזיר הצעות', 'error');
+    return;
+  }
+
+  showMsg(msg, `התקבלו ${bulkProposals.length} הצעות — סמן ואשר:`, 'success');
+  renderBulkRows();
+}
+
+function renderBulkRows() {
+  const folders = getAllFolderPaths();
+  document.getElementById('bulk-review-rows').innerHTML = bulkProposals.map((p, i) => {
+    const suggested = JSON.stringify(p.folder);
+    const known = folders.some(f => JSON.stringify(f) === suggested);
+    const opts = [
+      ...(known ? [] : [`<option value="${escHtml(suggested)}" selected>${escHtml(p.folder.join(' › '))} (חדשה)</option>`]),
+      ...folders.map(f => {
+        const v = JSON.stringify(f);
+        return `<option value="${escHtml(v)}"${v === suggested ? ' selected' : ''}>${escHtml(f.join(' › '))}</option>`;
+      })
+    ].join('');
+
+    return `
+      <div class="review-row">
+        <input type="checkbox" id="bulk-check-${i}" checked />
+        <span class="rv-title" title="${escHtml(p.bookmark.title)}">${escHtml(p.bookmark.title)}</span>
+        <select id="bulk-folder-${i}">${opts}</select>
+      </div>`;
+  }).join('');
+}
+
+async function applyBulkOrganize() {
+  const msg = document.getElementById('bulk-msg');
+  const chosen = bulkProposals
+    .map((p, i) => ({ p, i }))
+    .filter(({ i }) => document.getElementById('bulk-check-' + i)?.checked);
+
+  if (!chosen.length) { showMsg(msg, 'לא סומנו שורות', 'error'); return; }
+
+  let done = 0, failed = 0;
+  for (const { p, i } of chosen) {
+    let folder_path;
+    try { folder_path = JSON.parse(document.getElementById('bulk-folder-' + i).value); }
+    catch (_) { folder_path = p.folder; }
+
+    const { error } = await sbClient.from('bookmarks')
+      .update({ folder_path })
+      .eq('id', p.bookmark.id).eq('user_id', currentUser.id);
+
+    if (error) { failed++; } else { p.bookmark.folder_path = folder_path; done++; }
+    showMsg(msg, `⏳ שומר... ${done + failed} / ${chosen.length}`, 'success');
+  }
+
+  closeBulkReview();
+  refreshViews();
+  showToast(`✅ ${done} סימניות אורגנו` + (failed ? ` · ${failed} נכשלו` : ''), failed ? 'error' : 'success');
+}
+
+function closeBulkReview() {
+  document.getElementById('bulk-review-modal').classList.remove('open');
+  bulkProposals = [];
+}
+
+// ─────────────────────────────────────────────
+// AI: DISCOVER (experimental)
+// ─────────────────────────────────────────────
+async function startDiscover() {
+  if (!aiEnabled() || !currentFolder) return;
+
+  const folderName = currentFolder.join(' › ');
+  document.getElementById('discover-folder-name').textContent = '"' + folderName + '"';
+  document.getElementById('discover-rows').innerHTML = '';
+  const msg = document.getElementById('discover-msg');
+  document.getElementById('discover-modal').classList.add('open');
+  showMsg(msg, '⏳ ה-AI מחפש אתרים שמתאימים לתיקייה...', 'success');
+
+  const inFolder = allBookmarks.filter(b => {
+    const path = b.folder_path || [];
+    return path.length >= currentFolder.length && currentFolder.every((f, i) => path[i] === f);
+  });
+  const examples = inFolder.slice(0, 10).map(b => `${(b.title || '').slice(0, 60)} (${b.domain || ''})`).join('\n');
+  const existingDomains = new Set(inFolder.map(b => b.domain).filter(Boolean));
+
+  try {
+    const result = await chatCompletion([
+      { role: 'user', content:
+`Suggest 6 well-known websites matching the theme of this bookmark folder.
+Folder: ${currentFolder.join(' / ')}
+Existing bookmarks in it:
+${examples || '(empty folder — go by the folder name)'}
+
+You cannot browse the web. Only suggest homepages or top-level pages of widely known sites you are confident actually exist. Do not repeat domains from the existing bookmarks. Titles in the same language as the folder name when natural.
+Reply with JSON only: {"suggestions": [{"title": "...", "url": "https://...", "reason": "short reason"}]}` }
+    ], { json: true, temperature: 0.5, maxTokens: 800 });
+
+    const suggestions = (Array.isArray(result.suggestions) ? result.suggestions : [])
+      .filter(s => s && typeof s.url === 'string' && /^https?:\/\//.test(s.url))
+      .filter(s => {
+        try { return !existingDomains.has(new URL(s.url).hostname); } catch (_) { return false; }
+      });
+
+    if (!suggestions.length) {
+      showMsg(msg, 'לא התקבלו הצעות חדשות', 'error');
+      return;
+    }
+
+    document.getElementById('discover-msg').className = 'msg';
+    document.getElementById('discover-rows').innerHTML = suggestions.map(s => `
+      <div class="suggestion-row">
+        <div class="sg-body">
+          <div class="sg-title">${escHtml(s.title || s.url)}</div>
+          <div class="sg-url">${escHtml(s.url)}</div>
+          <div class="sg-reason">${escHtml(s.reason || '')}</div>
+        </div>
+        <div class="sg-actions">
+          <button class="btn-secondary" style="padding:0.35rem 0.7rem; font-size:0.78rem;" onclick="openBookmark('${escHtml(s.url)}')">פתח ↗</button>
+          <button class="btn-secondary" style="padding:0.35rem 0.7rem; font-size:0.78rem;" onclick='saveDiscovered(${JSON.stringify(JSON.stringify({ title: s.title || s.url, url: s.url }))})'>➕ שמור</button>
+        </div>
+      </div>`).join('');
+  } catch (e) {
+    showMsg(msg, aiErrorMessage(e), 'error');
+  }
+}
+
+function saveDiscovered(payloadJson) {
+  let payload;
+  try { payload = JSON.parse(payloadJson); } catch (_) { return; }
+  closeDiscover();
+  openQuickSave({ title: payload.title, url: payload.url, folder_path: currentFolder || [] });
+}
+
+function closeDiscover() {
+  document.getElementById('discover-modal').classList.remove('open');
 }
 
 // ─────────────────────────────────────────────
