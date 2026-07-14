@@ -530,115 +530,96 @@
   .stat-card .stat-value { font-size: 1.4rem; font-weight: 600; }
   .stat-card .stat-sub { font-size: 0.75rem; color: var(--text3); margin-top: 0.1rem; }
 
-  /* Bookmarks grid */
+  /* Bookmarks list — clean rows with dividers, like a browser's bookmarks */
   .bookmarks-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 0.75rem;
-  }
-
-  .bookmark-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
     background: var(--bg2);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 1rem;
-    transition: all 0.2s var(--ease);
-    cursor: pointer;
-    position: relative;
     overflow: hidden;
   }
+  .bookmarks-grid:empty { display: none; }
+  /* no divider under the last row (the container already has a border) */
+  .bookmarks-grid > .bookmark-card:last-child,
+  .bookmarks-grid > .folder-card:last-child { border-bottom: none; }
 
-  .bookmark-card:hover {
-    border-color: var(--border2);
-    transform: translateY(-2px);
-    background: var(--bg3);
+  .bookmark-card {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.8rem 0.9rem;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+    cursor: pointer;
   }
-
-  .bookmark-card::before {
-    content: '';
-    position: absolute;
-    top: 0; right: 0;
-    width: 3px; height: 100%;
-    background: var(--accent);
-    opacity: 0;
-    transition: opacity 0.2s;
-  }
-
-  .bookmark-card:hover::before { opacity: 1; }
+  .bookmark-card:hover { background: var(--bg3); }
 
   .bookmark-main {
-    display: block;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
     text-decoration: none;
     color: inherit;
   }
 
+  .bm-text { flex: 1; min-width: 0; }
+
   .bookmark-favicon {
-    width: 28px; height: 28px;
-    border-radius: 6px;
+    width: 34px; height: 34px;
+    border-radius: 8px;
     background: var(--bg4);
     display: flex; align-items: center; justify-content: center;
-    font-size: 14px;
-    margin-bottom: 0.6rem;
+    font-size: 16px;
+    flex-shrink: 0;
     overflow: hidden;
   }
-
   .bookmark-favicon img { width: 100%; height: 100%; object-fit: cover; }
 
   .bookmark-title {
-    font-size: 0.875rem;
+    font-size: 0.9rem;
     font-weight: 500;
-    margin-bottom: 0.25rem;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
-  .bookmark-url {
-    font-size: 0.75rem;
+  .bookmark-sub {
+    font-size: 0.73rem;
     color: var(--text3);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    margin-bottom: 0.6rem;
-  }
-
-  .bookmark-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .bookmark-folder {
-    font-size: 0.7rem;
-    color: var(--text3);
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
+    margin-top: 0.15rem;
+    direction: ltr;
+    text-align: right;
   }
 
   .bookmark-actions {
-    display: flex;
+    display: none;
     gap: 0.25rem;
-    opacity: 0;
-    transition: opacity 0.15s;
+    flex-shrink: 0;
   }
-
-  .bookmark-card:hover .bookmark-actions { opacity: 1; }
+  .bookmark-card:hover .bookmark-actions { display: flex; }
 
   .bookmark-btn {
-    width: 26px; height: 26px;
-    background: var(--bg4);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text2);
+    width: 30px; height: 30px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--text3);
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 13px;
     transition: all 0.15s;
   }
-
-  .bookmark-btn:hover { background: var(--bg3); color: var(--text); }
-  .bookmark-btn.delete:hover { border-color: rgba(239,68,68,0.4); color: #ef4444; }
+  .bookmark-btn:hover { background: var(--bg4); color: var(--text); }
+  .bookmark-btn.delete:hover { color: #ef4444; }
 
   /* Empty state */
   .empty-state {
@@ -774,7 +755,9 @@
     align-items: center;
     gap: 0.35rem;
     font-size: 0.85rem;
-    margin-bottom: 0.5rem;
+    padding: 0.7rem 0.9rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg3);
   }
   .folder-breadcrumb .crumb { color: var(--accent2); cursor: pointer; }
   .folder-breadcrumb .crumb:hover { text-decoration: underline; }
@@ -783,21 +766,20 @@
   .folder-browser-add { margin-right: auto; display: flex; gap: 0.4rem; }
 
   .folder-card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1rem;
-    cursor: pointer;
-    transition: all 0.2s var(--ease);
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    padding: 0.8rem 0.9rem;
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.15s;
   }
-  .folder-card:hover { border-color: var(--accent-glow); transform: translateY(-2px); background: var(--bg3); }
-  .folder-card-icon { font-size: 1.6rem; }
-  .folder-card-body { min-width: 0; }
-  .folder-card-name { font-size: 0.95rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .folder-card-count { font-size: 0.78rem; color: var(--text3); margin-top: 0.15rem; }
+  .folder-card:hover { background: var(--bg3); }
+  .folder-card-icon { font-size: 1.45rem; flex-shrink: 0; }
+  .folder-card-body { flex: 1; min-width: 0; }
+  .folder-card-name { font-size: 0.92rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .folder-card-count { font-size: 0.76rem; color: var(--text3); margin-top: 0.15rem; }
 
   /* AI chat */
   .chat-body {
@@ -830,9 +812,8 @@
     .topbar-search { max-width: none; min-width: 0; }
     .topbar-actions { gap: 0.35rem; }
     .user-chip .chip-signout, .user-chip #user-email-short { display: none; } /* keep just the dot on mobile */
-    .bookmarks-grid { grid-template-columns: 1fr; }
     .stats-bar { grid-template-columns: repeat(2, 1fr); }
-    .bookmark-actions { opacity: 1; }             /* touch devices have no hover — always show copy/delete */
+    .bookmark-actions { display: flex; }          /* touch devices have no hover — always show copy/delete */
     .mobile-nav { display: flex; gap: 0.4rem; overflow-x: auto; margin-bottom: 1rem; padding-bottom: 0.25rem; }
   }
 
@@ -1827,11 +1808,11 @@ function renderFolderBrowser() {
 function renderFolderCard(parentPath, s) {
   const full = [...parentPath, s.name];
   return `<div class="folder-card" onclick="enterFolder(${escHtml(JSON.stringify(full))})">
-    <div class="folder-card-icon">📁</div>
     <div class="folder-card-body">
       <div class="folder-card-name">${escHtml(s.name)}</div>
       <div class="folder-card-count">${s.count} קישורים</div>
     </div>
+    <div class="folder-card-icon">📁</div>
   </div>`;
 }
 
@@ -2021,32 +2002,30 @@ function renderBookmarks() {
 }
 
 function renderBookmarkCard(b) {
-  const path = (b.folder_path || []).join(' › ');
   const domain = b.domain || '';
-  const faviconUrl = domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=32` : '';
-
+  const faviconUrl = domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=64` : '';
   const safeUrl = escHtml(b.url);
+  // subtitle: the domain (or the folder path when there's no domain)
+  const sub = domain || (b.folder_path || []).join(' › ');
 
-  // Real anchor for the main click area — reliable everywhere, including a
-  // standalone PWA on mobile where window.open can be blocked
+  // A clean single row: title on the right, favicon on the left, like a browser.
+  // Real anchor for the click area — reliable in a standalone PWA where
+  // window.open can be blocked.
   return `
     <div class="bookmark-card">
       <a class="bookmark-main" href="${safeUrl}" target="_blank" rel="noopener noreferrer">
-        <div class="bookmark-favicon">
+        <span class="bm-text">
+          <span class="bookmark-title" title="${escHtml(b.title)}">${escHtml(b.title)}</span>
+          ${sub ? `<span class="bookmark-sub">${escHtml(sub)}</span>` : ''}
+        </span>
+        <span class="bookmark-favicon">
           ${faviconUrl ? `<img src="${faviconUrl}" onerror="this.style.display='none';this.parentElement.textContent='🔗'" />` : '🔗'}
-        </div>
-        <div class="bookmark-title" title="${escHtml(b.title)}">${escHtml(b.title)}</div>
-        <div class="bookmark-url">${escHtml(b.url)}</div>
+        </span>
       </a>
-      <div class="bookmark-footer">
-        <div class="bookmark-folder">
-          ${path ? `📁 ${escHtml(path)}` : ''}
-        </div>
-        <div class="bookmark-actions">
-          <button class="bookmark-btn" data-url="${safeUrl}" onclick="copyUrl(this.dataset.url)" title="העתק קישור">📋</button>
-          <button class="bookmark-btn delete" data-id="${b.id}" onclick="deleteBookmark(this.dataset.id)" title="מחק">🗑</button>
-        </div>
-      </div>
+      <span class="bookmark-actions">
+        <button class="bookmark-btn" data-url="${safeUrl}" onclick="copyUrl(this.dataset.url)" title="העתק קישור">📋</button>
+        <button class="bookmark-btn delete" data-id="${b.id}" onclick="deleteBookmark(this.dataset.id)" title="מחק">🗑</button>
+      </span>
     </div>
   `;
 }
