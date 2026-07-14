@@ -1134,7 +1134,7 @@ CREATE INDEX ON bookmarks(user_id);</code>
     <div class="sidebar">
       <div class="sidebar-section">
         <div class="sidebar-label">ניווט</div>
-        <div class="sidebar-item active" id="nav-all" onclick="setView('all')">
+        <div class="sidebar-item" id="nav-all" onclick="setView('all')">
           <span class="icon">📚</span>
           <span>כל הסימניות</span>
           <span class="sidebar-count" id="count-all">0</span>
@@ -1143,7 +1143,7 @@ CREATE INDEX ON bookmarks(user_id);</code>
           <span class="icon">🕐</span>
           <span>לאחרונה</span>
         </div>
-        <div class="sidebar-item" id="nav-folders" onclick="openFolders()">
+        <div class="sidebar-item active" id="nav-folders" onclick="openFolders()">
           <span class="icon">📁</span>
           <span>עיון בתיקיות</span>
         </div>
@@ -1175,9 +1175,9 @@ CREATE INDEX ON bookmarks(user_id);</code>
     <div class="main-content">
       <!-- Mobile navigation (sidebar is hidden on phones) -->
       <div class="mobile-nav" id="mobile-nav">
-        <button class="mobile-nav-btn active" data-view="all" onclick="setView('all')">📚 הכל</button>
+        <button class="mobile-nav-btn" data-view="all" onclick="setView('all')">📚 הכל</button>
         <button class="mobile-nav-btn" data-view="recent" onclick="setView('recent')">🕐 לאחרונה</button>
-        <button class="mobile-nav-btn" data-view="folders" onclick="openFolders()">📁 תיקיות</button>
+        <button class="mobile-nav-btn active" data-view="folders" onclick="openFolders()">📁 תיקיות</button>
       </div>
 
       <!-- Upload zone (shown when empty) -->
@@ -1201,8 +1201,30 @@ CREATE INDEX ON bookmarks(user_id);</code>
         <div class="progress-text" id="progress-status">מכין...</div>
       </div>
 
-      <!-- Stats -->
-      <div class="stats-bar" id="stats-bar" style="display:none;">
+      <!-- Content header -->
+      <div class="content-header" id="content-header" style="display:none;">
+        <div>
+          <h2 id="view-title">📁 עיון בתיקיות</h2>
+          <p id="view-subtitle">טוען...</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn-secondary" id="discover-btn" style="display:none;" onclick="startDiscover()">
+            ✨ גלה עוד
+          </button>
+          <button class="btn-accent" onclick="openBulkAdd()">
+            ➕ הדבק קישורים
+          </button>
+          <button class="btn-secondary" onclick="document.getElementById('import-file').click()">
+            📂 ייבוא נוסף
+          </button>
+        </div>
+      </div>
+
+      <!-- Bookmarks -->
+      <div class="bookmarks-grid" id="bookmarks-grid"></div>
+
+      <!-- Stats (shown below the bookmarks, not above them) -->
+      <div class="stats-bar" id="stats-bar" style="display:none; margin-top:1.5rem; margin-bottom:0;">
         <div class="stat-card">
           <div class="stat-label">סה"כ סימניות</div>
           <div class="stat-value" id="stat-total">0</div>
@@ -1224,28 +1246,6 @@ CREATE INDEX ON bookmarks(user_id);</code>
           <div class="stat-sub">תאריך</div>
         </div>
       </div>
-
-      <!-- Content header -->
-      <div class="content-header" id="content-header" style="display:none;">
-        <div>
-          <h2 id="view-title">כל הסימניות</h2>
-          <p id="view-subtitle">טוען...</p>
-        </div>
-        <div class="header-actions">
-          <button class="btn-secondary" id="discover-btn" style="display:none;" onclick="startDiscover()">
-            ✨ גלה עוד
-          </button>
-          <button class="btn-accent" onclick="openBulkAdd()">
-            ➕ הדבק קישורים
-          </button>
-          <button class="btn-secondary" onclick="document.getElementById('import-file').click()">
-            📂 ייבוא נוסף
-          </button>
-        </div>
-      </div>
-
-      <!-- Bookmarks -->
-      <div class="bookmarks-grid" id="bookmarks-grid"></div>
 
       <!-- Loading -->
       <div class="loading" id="loading-indicator" style="display:none;">
@@ -1449,7 +1449,7 @@ const DEFAULT_SB_KEY = 'sb_publishable_tJfERoRop3vIOZBRFnFsUg_GYMd5UYy';
 let sbClient = null;
 let currentUser = null;
 let allBookmarks = [];
-let currentView = 'all';
+let currentView = 'folders';   // the main screen opens on the folder view, like a browser's bookmarks
 let currentFolder = null;
 
 // ─────────────────────────────────────────────
