@@ -1198,6 +1198,11 @@ CREATE INDEX ON bookmarks(user_id);</code>
       <input type="text" id="bulkadd-new-folder" class="rtl-input" placeholder="שם תיקייה חדשה (אפשר גם אב/בן)" style="display:none; margin-top:0.5rem;" />
     </div>
 
+    <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.82rem; color:var(--text2); cursor:pointer; margin-bottom:0.5rem;">
+      <input type="checkbox" id="bulkadd-move-existing" onchange="updateBulkPreview()" />
+      העבר קישורים שכבר קיימים לתיקייה הזו (במקום לדלג עליהם)
+    </label>
+
     <!-- Progress reused inline -->
     <div class="progress-bar-wrap" id="bulkadd-progress-wrap" style="display:none;">
       <div class="progress-bar-fill" id="bulkadd-progress-bar"></div>
@@ -1220,7 +1225,8 @@ CREATE INDEX ON bookmarks(user_id);</code>
       <span id="qs-dup-text"></span>
       <div class="dup-actions">
         <button class="btn-secondary" style="padding:0.35rem 0.8rem; font-size:0.78rem;" onclick="openBookmark(document.getElementById('qs-url').value.trim())">פתח ↗</button>
-        <button class="btn-secondary" style="padding:0.35rem 0.8rem; font-size:0.78rem;" id="qs-dup-update" onclick="quickSaveSubmit(true)">עדכן תיקייה</button>
+        <button class="btn-secondary" style="padding:0.35rem 0.8rem; font-size:0.78rem;" id="qs-dup-update" onclick="quickSaveSubmit(true)">העבר לתיקייה שבחרתי</button>
+        <button class="btn-secondary" style="padding:0.35rem 0.8rem; font-size:0.78rem;" onclick="closeQuickSave()">דלג</button>
       </div>
     </div>
 
@@ -1416,7 +1422,7 @@ async function showApp() {
   const pendingShare = sessionStorage.getItem('pending_share');
   if (pendingShare) {
     sessionStorage.removeItem('pending_share');
-    try { openQuickSave(JSON.parse(pendingShare)); } catch (_) {}
+    try { handleIncomingShare(JSON.parse(pendingShare)); } catch (_) {}
   }
 }
 
@@ -2008,8 +2014,8 @@ function quickSaveUrlChanged() {
   if (existing) {
     const folder = (existing.folder_path || []).join(' › ');
     document.getElementById('qs-dup-text').textContent =
-      folder ? `הקישור כבר שמור בתיקייה "${folder}". אפשר לפתוח אותו או לעדכן את התיקייה.`
-             : 'הקישור כבר שמור (ללא תיקייה). אפשר לפתוח אותו או לעדכן את התיקייה.';
+      folder ? `הקישור הזה כבר שמור בתיקייה "${folder}".`
+             : 'הקישור הזה כבר שמור (ללא תיקייה).';
     banner.classList.add('show');
     document.getElementById('qs-save-btn').style.display = 'none';
   } else {
@@ -2131,45 +2137,74 @@ function parseBulkText(text) {
   const results = [];
   const seen = new Set();
   const urlRe = /https?:\/\/[^\s"'<>]+/g;
+  let pendingTitle = '';   // a text-only line becomes the title of the URL on the next line
 
   (text || '').split(/\r?\n/).forEach(line => {
     const urls = line.match(urlRe);
-    if (!urls) return;
-    // whatever text is left on the line (after removing the links) becomes the title
+    // whatever text is left on the line (after removing the links) is a title candidate
     const leftover = line.replace(urlRe, ' ').replace(/[\s\-–—:,.|]+/g, ' ').trim();
+
+    if (!urls) {
+      if (leftover) pendingTitle = leftover;   // e.g. a folder export lists the name then the link
+      return;
+    }
+
     urls.forEach((raw, idx) => {
       const url = raw.replace(/[),.;:!?\]]+$/, '');
       if (seen.has(url)) return;
       let domain = '';
       try { domain = new URL(url).hostname; } catch (_) { return; }
       seen.add(url);
-      const title = (idx === 0 && leftover) ? leftover : domain.replace(/^www\./, '');
+      let title;
+      if (idx === 0 && leftover) title = leftover;
+      else if (idx === 0 && pendingTitle) title = pendingTitle;
+      else title = domain.replace(/^www\./, '');
       results.push({ url, title, domain });
     });
+    pendingTitle = '';
   });
   return results;
 }
 
-function openBulkAdd() {
-  document.getElementById('bulkadd-text').value = '';
+function openBulkAdd(prefillText) {
+  const box = document.getElementById('bulkadd-text');
+  box.value = prefillText || '';
   document.getElementById('bulkadd-new-folder').value = '';
   document.getElementById('bulkadd-new-folder').style.display = 'none';
   document.getElementById('bulk-add-msg').className = 'msg';
   document.getElementById('bulkadd-progress-wrap').style.display = 'none';
   document.getElementById('bulkadd-progress-bar').style.width = '0%';
   document.getElementById('bulkadd-save-btn').disabled = false;
+  const moveChk = document.getElementById('bulkadd-move-existing');
+  if (moveChk) moveChk.checked = false;
   populateFolderSelect(document.getElementById('bulkadd-folder'), null);
   document.getElementById('bulkadd-modal').classList.add('open');
   updateBulkPreview();
 
-  // Prefill from clipboard when it contains links
-  navigator.clipboard.readText().then(text => {
-    const box = document.getElementById('bulkadd-text');
-    if (text && /https?:\/\//.test(text) && !box.value) {
-      box.value = text;
-      updateBulkPreview();
-    }
-  }).catch(() => {});
+  // Prefill from clipboard when it contains links (only if nothing was passed in)
+  if (!prefillText) {
+    navigator.clipboard.readText().then(text => {
+      if (text && /https?:\/\//.test(text) && !box.value) {
+        box.value = text;
+        updateBulkPreview();
+      }
+    }).catch(() => {});
+  }
+}
+
+// Decide where an incoming share/paste goes: several links → bulk modal;
+// a single link → the single quick-save modal (with AI folder suggestion)
+function handleIncomingShare(share) {
+  const blob = [share.rawText, share.title, share.url].filter(Boolean).join('\n');
+  const urls = (blob.match(/https?:\/\/[^\s"'<>]+/g) || [])
+    .map(u => u.replace(/[),.;:!?\]]+$/, ''));
+  const uniqueCount = new Set(urls).size;
+
+  if (uniqueCount >= 2) {
+    openBulkAdd(blob);
+  } else {
+    openQuickSave(share);
+  }
 }
 
 function closeBulkAdd() {
@@ -2198,7 +2233,14 @@ function updateBulkPreview() {
   if (!parsed.length) { el.textContent = 'לא זוהו קישורים עדיין'; return; }
   const newCount = parsed.filter(p => !findByUrl(p.url)).length;
   const dup = parsed.length - newCount;
-  el.textContent = `זוהו ${parsed.length} קישורים` + (dup ? ` · ${newCount} חדשים, ${dup} כבר קיימים` : '');
+  const moveExisting = document.getElementById('bulkadd-move-existing')?.checked;
+  let extra = '';
+  if (dup) {
+    extra = moveExisting
+      ? ` · ${newCount} חדשים, ${dup} קיימים יועברו לכאן`
+      : ` · ${newCount} חדשים, ${dup} כבר קיימים (ידולגו)`;
+  }
+  el.textContent = `זוהו ${parsed.length} קישורים` + extra;
 }
 
 async function saveBulkLinks() {
@@ -2207,8 +2249,16 @@ async function saveBulkLinks() {
   if (!parsed.length) { showMsg(msg, 'לא זוהו קישורים בטקסט', 'error'); return; }
 
   const folder_path = getBulkAddFolder();
+  const moveExisting = document.getElementById('bulkadd-move-existing')?.checked;
   const toSave = parsed.filter(p => !findByUrl(p.url));
-  if (!toSave.length) { showMsg(msg, 'כל הקישורים כבר שמורים', 'success'); return; }
+  const existing = moveExisting
+    ? parsed.map(p => findByUrl(p.url)).filter(b => b && JSON.stringify(b.folder_path || []) !== JSON.stringify(folder_path))
+    : [];
+
+  if (!toSave.length && !existing.length) {
+    showMsg(msg, moveExisting ? 'כל הקישורים כבר בתיקייה הזו' : 'כל הקישורים כבר שמורים', 'success');
+    return;
+  }
 
   const btn = document.getElementById('bulkadd-save-btn');
   btn.disabled = true;
@@ -2225,6 +2275,9 @@ async function saveBulkLinks() {
 
   const BATCH = 50;
   let saved = 0;
+  let moved = 0;
+  const total = rows.length + existing.length;
+  let done = 0;
   try {
     for (let i = 0; i < rows.length; i += BATCH) {
       const batch = rows.slice(i, i + BATCH);
@@ -2234,7 +2287,17 @@ async function saveBulkLinks() {
       if (error) throw error;
       (data || []).forEach(b => allBookmarks.push(b));
       saved += (data || []).length;
-      bar.style.width = Math.round(((i + batch.length) / rows.length) * 100) + '%';
+      done += batch.length;
+      bar.style.width = Math.round((done / total) * 100) + '%';
+    }
+
+    // Move already-saved links into the chosen folder
+    for (const b of existing) {
+      const { error } = await sbClient.from('bookmarks')
+        .update({ folder_path }).eq('id', b.id).eq('user_id', currentUser.id);
+      if (!error) { b.folder_path = folder_path; moved++; }
+      done++;
+      bar.style.width = Math.round((done / total) * 100) + '%';
     }
   } catch (e) {
     btn.disabled = false;
@@ -2245,8 +2308,13 @@ async function saveBulkLinks() {
 
   refreshViews();
   closeBulkAdd();
-  const skipped = parsed.length - saved;
-  showToast(`✅ נשמרו ${saved} קישורים` + (skipped > 0 ? ` · ${skipped} כבר קיימים` : ''), 'success');
+  const skipped = parsed.length - saved - moved;
+  showToast(
+    `✅ נשמרו ${saved} קישורים` +
+    (moved ? ` · ${moved} הועברו` : '') +
+    (skipped > 0 ? ` · ${skipped} כבר קיימים` : ''),
+    'success'
+  );
 }
 
 // ─────────────────────────────────────────────
