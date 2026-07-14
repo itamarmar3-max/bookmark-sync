@@ -958,8 +958,12 @@ CREATE INDEX ON bookmarks(user_id);</code>
     </div>
 
     <div class="field">
-      <label>Anon Key</label>
-      <input type="text" id="sb-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." />
+      <label>Anon / Publishable Key</label>
+      <input type="text" id="sb-key" placeholder="sb_publishable_... או eyJhbGci..." />
+      <p style="font-size:0.72rem; color:var(--text3); margin-top:0.4rem; line-height:1.5;">
+        בפרויקט Supabase חדש: הדבק את מפתח ה-<strong>Publishable</strong> (<code style="color:var(--accent2);">sb_publishable_…</code>).
+        לעולם לא את מפתח ה-Secret.
+      </p>
     </div>
 
     <div id="config-msg" class="msg"></div>
@@ -995,6 +999,10 @@ CREATE INDEX ON bookmarks(user_id);</code>
     </div>
 
     <button class="btn-primary" id="auth-btn" onclick="doAuth()">כניסה</button>
+
+    <button class="btn-secondary" style="width:100%; justify-content:center; margin-top:0.75rem;" onclick="resetConnection()">
+      🔌 החלף חיבור Supabase
+    </button>
 
     <p style="text-align:center; margin-top:1rem; font-size:0.8rem; color:var(--text3);">
       פרטים נשמרים ב-Supabase שלך בלבד
@@ -1291,11 +1299,17 @@ window.onload = async () => {
 
   initSupabase(url, key);
 
-  const { data: { session } } = await sbClient.auth.getSession();
-  if (session) {
-    currentUser = session.user;
-    showApp();
-  } else {
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (session) {
+      currentUser = session.user;
+      showApp();
+    } else {
+      showAuth();
+    }
+  } catch (e) {
+    // e.g. the saved project was deleted/paused — land on auth so the
+    // "switch connection" button is reachable
     showAuth();
   }
 };
@@ -1316,7 +1330,30 @@ function showSetup() {
 
 function showConfig() {
   document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'none';
   document.getElementById('config-screen').style.display = 'flex';
+}
+
+// Disconnect the current Supabase project and return to the config screen so a
+// new project's URL + key can be entered (e.g. after migrating to a new project)
+async function resetConnection() {
+  if (!confirm('להחליף חיבור Supabase? תזין URL ומפתח חדשים. הסימניות עצמן נשארות בפרויקט Supabase שלך.')) return;
+
+  try { await sbClient?.auth?.signOut(); } catch (_) {}
+
+  localStorage.removeItem('sb_url');
+  localStorage.removeItem('sb_key');
+  currentUser = null;
+  allBookmarks = [];
+
+  const urlInput = document.getElementById('sb-url');
+  const keyInput = document.getElementById('sb-key');
+  if (urlInput) urlInput.value = '';
+  if (keyInput) keyInput.value = '';
+  document.getElementById('config-msg').className = 'msg';
+
+  showConfig();
 }
 
 function showAuth() {
