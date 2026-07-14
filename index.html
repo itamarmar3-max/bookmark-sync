@@ -751,6 +751,78 @@
   .progress-text { font-size: 0.8rem; color: var(--text2); }
 
   /* Responsive */
+  /* Mobile nav (folders/all/recent) — sidebar is hidden on phones */
+  .mobile-nav { display: none; }
+  .mobile-nav-btn {
+    flex-shrink: 0;
+    padding: 0.4rem 0.85rem;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--text2);
+    font-family: var(--font);
+    font-size: 0.82rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .mobile-nav-btn.active { background: var(--accent-dim); border-color: var(--accent-glow); color: var(--accent2); }
+
+  /* Folder browser */
+  .folder-breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+  }
+  .folder-breadcrumb .crumb { color: var(--accent2); cursor: pointer; }
+  .folder-breadcrumb .crumb:hover { text-decoration: underline; }
+  .folder-breadcrumb .crumb.current { color: var(--text); cursor: default; text-decoration: none; }
+  .folder-breadcrumb .crumb-sep { color: var(--text3); }
+  .folder-browser-add { margin-right: auto; display: flex; gap: 0.4rem; }
+
+  .folder-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.2s var(--ease);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .folder-card:hover { border-color: var(--accent-glow); transform: translateY(-2px); background: var(--bg3); }
+  .folder-card-icon { font-size: 1.6rem; }
+  .folder-card-body { min-width: 0; }
+  .folder-card-name { font-size: 0.95rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .folder-card-count { font-size: 0.78rem; color: var(--text3); margin-top: 0.15rem; }
+
+  /* AI chat */
+  .chat-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    max-height: 55vh;
+    overflow-y: auto;
+    padding: 0.25rem;
+    margin-bottom: 0.75rem;
+  }
+  .chat-msg { max-width: 85%; padding: 0.6rem 0.85rem; border-radius: 14px; font-size: 0.88rem; line-height: 1.6; white-space: normal; word-break: break-word; }
+  .chat-msg.user { align-self: flex-start; background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+  .chat-msg.bot { align-self: flex-end; background: var(--bg3); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+  .chat-msg.bot a { color: var(--accent2); }
+  .chat-input-row { display: flex; gap: 0.5rem; align-items: flex-end; }
+  .chat-input-row textarea {
+    flex: 1; resize: none; min-height: 42px; max-height: 120px;
+    padding: 0.6rem 0.8rem; background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); color: var(--text); font-family: var(--font);
+    font-size: 0.9rem; outline: none; line-height: 1.5;
+  }
+  .chat-input-row textarea:focus { border-color: var(--accent); }
+  .chat-empty { text-align: center; color: var(--text3); font-size: 0.85rem; padding: 1.5rem 1rem; line-height: 1.7; }
+
   @media (max-width: 768px) {
     .sidebar { display: none; }
     .topbar { padding: 0 0.6rem; gap: 0.4rem; }
@@ -761,6 +833,7 @@
     .bookmarks-grid { grid-template-columns: 1fr; }
     .stats-bar { grid-template-columns: repeat(2, 1fr); }
     .bookmark-actions { opacity: 1; }             /* touch devices have no hover — always show copy/delete */
+    .mobile-nav { display: flex; gap: 0.4rem; overflow-x: auto; margin-bottom: 1rem; padding-bottom: 0.25rem; }
   }
 
   /* Folder tree indentation */
@@ -1046,7 +1119,7 @@ CREATE INDEX ON bookmarks(user_id);</code>
 
     <div class="topbar-actions">
       <button class="icon-btn" title="הוסף קישורים" onclick="openBulkAdd()">➕</button>
-      <button class="icon-btn ai-btn" title="AI — הגדרות, חיפוש חכם וארגון" onclick="openAISettings()">✨ AI</button>
+      <button class="icon-btn ai-btn" title="צ'אט AI על הסימניות שלך" onclick="openAIChat()">✨ AI</button>
       <div class="user-chip" onclick="signOut()">
         <div class="user-dot"></div>
         <span id="user-email-short">משתמש</span>
@@ -1069,6 +1142,10 @@ CREATE INDEX ON bookmarks(user_id);</code>
         <div class="sidebar-item" id="nav-recent" onclick="setView('recent')">
           <span class="icon">🕐</span>
           <span>לאחרונה</span>
+        </div>
+        <div class="sidebar-item" id="nav-folders" onclick="openFolders()">
+          <span class="icon">📁</span>
+          <span>עיון בתיקיות</span>
         </div>
         <div class="sidebar-item" id="nav-organize" onclick="startBulkOrganize()" style="display:none;">
           <span class="icon">✨</span>
@@ -1096,6 +1173,13 @@ CREATE INDEX ON bookmarks(user_id);</code>
 
     <!-- Main -->
     <div class="main-content">
+      <!-- Mobile navigation (sidebar is hidden on phones) -->
+      <div class="mobile-nav" id="mobile-nav">
+        <button class="mobile-nav-btn active" data-view="all" onclick="setView('all')">📚 הכל</button>
+        <button class="mobile-nav-btn" data-view="recent" onclick="setView('recent')">🕐 לאחרונה</button>
+        <button class="mobile-nav-btn" data-view="folders" onclick="openFolders()">📁 תיקיות</button>
+      </div>
+
       <!-- Upload zone (shown when empty) -->
       <div class="upload-zone" id="upload-zone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
         <input type="file" accept=".html,.htm" onchange="importBookmarks(this)" />
@@ -1253,6 +1337,28 @@ CREATE INDEX ON bookmarks(user_id);</code>
     <div class="modal-actions">
       <button class="btn-primary" id="qs-save-btn" onclick="quickSaveSubmit()">שמור</button>
       <button class="btn-secondary" onclick="closeQuickSave()">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI CHAT MODAL -->
+<div class="modal-overlay" id="ai-chat-modal">
+  <div class="modal-card">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+      <h2 style="margin:0;">✨ צ'אט AI</h2>
+      <div style="display:flex; gap:0.4rem;">
+        <button class="icon-btn" title="נקה שיחה" onclick="clearAIChat()">🧹</button>
+        <button class="icon-btn" title="הגדרות AI" onclick="openAISettings()">⚙️</button>
+        <button class="icon-btn" title="סגור" onclick="closeAIChat()">✕</button>
+      </div>
+    </div>
+
+    <div class="chat-body" id="chat-body"></div>
+
+    <div class="chat-input-row" id="chat-input-row">
+      <textarea id="chat-input" rows="1" placeholder="שאל על הסימניות שלך... (למשל: מצא לי את אתר המתכונים)"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage();}"></textarea>
+      <button class="btn-primary" style="margin-top:0; width:auto; padding:0 1rem;" id="chat-send-btn" onclick="sendChatMessage()">שלח</button>
     </div>
   </div>
 </div>
@@ -1633,6 +1739,210 @@ function selectFolder(path, id) {
 }
 
 // ─────────────────────────────────────────────
+// FOLDER BROWSER (drill-down, mobile-friendly)
+// ─────────────────────────────────────────────
+function openFolders() { enterFolder([]); }
+
+function enterFolder(path) {
+  currentView = 'folders';
+  currentFolder = (path && path.length) ? path : null;
+  document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.folder-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('nav-folders')?.classList.add('active');
+  document.getElementById('view-title').textContent =
+    currentFolder ? '📁 ' + currentFolder[currentFolder.length - 1] : '📁 עיון בתיקיות';
+  document.getElementById('search-input').value = '';
+  smartSearchResults = null;
+  updateMobileNavActive('folders');
+  refreshAIUI();
+  renderBookmarks();
+}
+
+function updateMobileNavActive(view) {
+  document.querySelectorAll('.mobile-nav-btn').forEach(btn =>
+    btn.classList.toggle('active', btn.dataset.view === view));
+}
+
+// immediate sub-folder names (with total descendant counts) under a parent path
+function getSubFolders(parentPath) {
+  const map = new Map();
+  allBookmarks.forEach(b => {
+    const p = b.folder_path || [];
+    if (p.length <= parentPath.length) return;
+    if (!parentPath.every((f, i) => p[i] === f)) return;
+    const child = p[parentPath.length];
+    map.set(child, (map.get(child) || 0) + 1);
+  });
+  return [...map.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'he'));
+}
+
+// bookmarks whose folder is exactly this path (not descendants)
+function getBookmarksExactlyIn(path) {
+  return allBookmarks.filter(b => {
+    const p = b.folder_path || [];
+    return p.length === path.length && path.every((f, i) => p[i] === f);
+  });
+}
+
+function renderFolderBrowser() {
+  const grid = document.getElementById('bookmarks-grid');
+  const path = currentFolder || [];
+  const subs = getSubFolders(path);
+  const items = getBookmarksExactlyIn(path);
+
+  const crumbs = [`<span class="crumb${path.length ? '' : ' current'}" onclick="enterFolder([])">🏠 תיקיות</span>`];
+  path.forEach((name, i) => {
+    const isLast = i === path.length - 1;
+    crumbs.push('<span class="crumb-sep">›</span>');
+    crumbs.push(`<span class="crumb${isLast ? ' current' : ''}" onclick="enterFolder(${escHtml(JSON.stringify(path.slice(0, i + 1)))})">${escHtml(name)}</span>`);
+  });
+
+  const addBtns = `<span class="folder-browser-add">
+    <button class="btn-secondary" style="padding:0.3rem 0.7rem; font-size:0.75rem;" onclick="newSubfolderHere()">➕ תת-תיקייה</button>
+    <button class="btn-accent" style="padding:0.3rem 0.7rem; font-size:0.75rem;" onclick="addHere()">➕ הוסף כאן</button>
+  </span>`;
+
+  let html = `<div class="folder-breadcrumb" style="grid-column:1/-1;">${crumbs.join('')}${addBtns}</div>`;
+  html += subs.map(s => renderFolderCard(path, s)).join('');
+  html += items.map(b => renderBookmarkCard(b)).join('');
+
+  if (!subs.length && !items.length) {
+    html += `<div class="empty-state" style="grid-column:1/-1;">
+      <div class="empty-icon">📂</div>
+      <h3>התיקייה ריקה</h3>
+      <p>הוסף קישורים לכאן עם "➕ הוסף כאן"</p>
+    </div>`;
+  }
+
+  grid.innerHTML = html;
+  document.getElementById('view-subtitle').textContent = `${subs.length} תיקיות · ${items.length} קישורים`;
+}
+
+function renderFolderCard(parentPath, s) {
+  const full = [...parentPath, s.name];
+  return `<div class="folder-card" onclick="enterFolder(${escHtml(JSON.stringify(full))})">
+    <div class="folder-card-icon">📁</div>
+    <div class="folder-card-body">
+      <div class="folder-card-name">${escHtml(s.name)}</div>
+      <div class="folder-card-count">${s.count} קישורים</div>
+    </div>
+  </div>`;
+}
+
+function addHere() {
+  openBulkAdd('', currentFolder || []);
+}
+
+function newSubfolderHere() {
+  const name = (prompt('שם התת-תיקייה החדשה:') || '').trim();
+  if (!name) return;
+  // a folder becomes real once it has a link — open the paste box aimed at the new sub-folder
+  openBulkAdd('', [...(currentFolder || []), name]);
+}
+
+// ─────────────────────────────────────────────
+// AI CHAT
+// ─────────────────────────────────────────────
+let aiChatHistory = [];
+
+function openAIChat() {
+  document.getElementById('ai-chat-modal').classList.add('open');
+  renderChat();
+  setTimeout(() => document.getElementById('chat-input')?.focus(), 50);
+}
+function closeAIChat() {
+  document.getElementById('ai-chat-modal').classList.remove('open');
+}
+function clearAIChat() {
+  aiChatHistory = [];
+  renderChat();
+}
+
+function renderChatText(text) {
+  return escHtml(text)
+    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>')
+    .replace(/\n/g, '<br>');
+}
+
+function renderChat() {
+  const body = document.getElementById('chat-body');
+  const row = document.getElementById('chat-input-row');
+
+  if (!aiEnabled()) {
+    row.style.display = 'none';
+    body.innerHTML = `<div class="chat-empty">
+      כדי לשוחח עם ה-AI צריך להגדיר מפתח API (חינמי).<br><br>
+      <button class="btn-primary" style="margin-top:0;" onclick="openAISettings()">⚙️ הגדר AI</button>
+    </div>`;
+    return;
+  }
+  row.style.display = 'flex';
+
+  if (!aiChatHistory.length) {
+    body.innerHTML = `<div class="chat-empty">
+      שאל אותי כל דבר על הסימניות שלך 😊<br>
+      למשל: "מצא לי את אתר המתכונים", "אילו תיקיות יש לי?", "המלץ על משהו לקרוא".
+    </div>`;
+    return;
+  }
+  body.innerHTML = aiChatHistory.map(m =>
+    `<div class="chat-msg ${m.role === 'user' ? 'user' : 'bot'}">${renderChatText(m.content)}</div>`
+  ).join('');
+  body.scrollTop = body.scrollHeight;
+}
+
+function bookmarkContextForChat() {
+  const MAX = 300;
+  const lines = allBookmarks.slice(0, MAX).map(b =>
+    `${(b.title || '').slice(0, 80)} | ${b.domain || ''} | ${(b.folder_path || []).join('/')}`);
+  let ctx = lines.join('\n');
+  if (allBookmarks.length > MAX) ctx += `\n...(ועוד ${allBookmarks.length - MAX} סימניות)`;
+  return ctx;
+}
+
+async function sendChatMessage() {
+  if (!aiEnabled()) { openAISettings(); return; }
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  aiChatHistory.push({ role: 'user', content: text });
+  renderChat();
+
+  const btn = document.getElementById('chat-send-btn');
+  btn.disabled = true;
+  const body = document.getElementById('chat-body');
+  const typing = document.createElement('div');
+  typing.className = 'chat-msg bot';
+  typing.innerHTML = '<span class="spinner" style="width:14px;height:14px;"></span>';
+  body.appendChild(typing);
+  body.scrollTop = body.scrollHeight;
+
+  const system = {
+    role: 'system',
+    content:
+`You are a friendly assistant inside a personal bookmark manager. The user writes in Hebrew or English. Help them find, organize, understand and get recommendations about THEIR saved bookmarks listed below. Answer in the user's language, concisely. When you refer to a saved bookmark mention its title (and folder when useful). Do not invent bookmarks that are not in the list.
+
+The user's bookmarks (title | domain | folders):
+${bookmarkContextForChat()}`
+  };
+  const history = aiChatHistory.slice(-10);
+
+  try {
+    const reply = await chatCompletion([system, ...history], { maxTokens: 700, temperature: 0.4 });
+    aiChatHistory.push({ role: 'assistant', content: (reply || '').trim() || '(אין תשובה)' });
+  } catch (e) {
+    aiChatHistory.push({ role: 'assistant', content: '⚠️ ' + aiErrorMessage(e) });
+  } finally {
+    btn.disabled = false;
+    renderChat();
+  }
+}
+
+// ─────────────────────────────────────────────
 // RENDER BOOKMARKS
 // ─────────────────────────────────────────────
 function setView(view) {
@@ -1646,12 +1956,21 @@ function setView(view) {
   if (view === 'all') document.getElementById('view-title').textContent = 'כל הסימניות';
   if (view === 'recent') document.getElementById('view-title').textContent = 'סימניות אחרונות';
 
+  updateMobileNavActive(view);
   refreshAIUI();
   renderBookmarks();
 }
 
 function renderBookmarks() {
   const search = document.getElementById('search-input').value.toLowerCase();
+
+  // Folder-browser mode: show sub-folders + the bookmarks directly in this folder.
+  // When there's a search term, fall through and search across everything instead.
+  if (currentView === 'folders' && !search && !smartSearchResults) {
+    renderFolderBrowser();
+    return;
+  }
+
   let items = [...allBookmarks];
 
   if (currentView === 'folder' && currentFolder) {
@@ -2166,7 +2485,7 @@ function parseBulkText(text) {
   return results;
 }
 
-function openBulkAdd(prefillText) {
+function openBulkAdd(prefillText, prefillFolder) {
   const box = document.getElementById('bulkadd-text');
   box.value = prefillText || '';
   document.getElementById('bulkadd-new-folder').value = '';
@@ -2177,7 +2496,22 @@ function openBulkAdd(prefillText) {
   document.getElementById('bulkadd-save-btn').disabled = false;
   const moveChk = document.getElementById('bulkadd-move-existing');
   if (moveChk) moveChk.checked = false;
-  populateFolderSelect(document.getElementById('bulkadd-folder'), null);
+
+  const sel = document.getElementById('bulkadd-folder');
+  populateFolderSelect(sel, null);
+  // Preselect a target folder (e.g. "add here" from the folder browser). If it's
+  // a new path that doesn't exist yet, drop it into the "new folder" field.
+  if (prefillFolder && prefillFolder.length) {
+    const v = JSON.stringify(prefillFolder);
+    if ([...sel.options].some(o => o.value === v)) {
+      sel.value = v;
+    } else {
+      sel.value = '__new__';
+      bulkAddFolderChanged();
+      document.getElementById('bulkadd-new-folder').value = prefillFolder.join('/');
+    }
+  }
+
   document.getElementById('bulkadd-modal').classList.add('open');
   updateBulkPreview();
 
@@ -2438,7 +2772,7 @@ function refreshAIUI() {
   document.getElementById('count-unorganized').textContent = unorganized;
 
   document.getElementById('discover-btn').style.display =
-    (on && currentView === 'folder' && currentFolder) ? '' : 'none';
+    (on && currentFolder && (currentView === 'folder' || currentView === 'folders')) ? '' : 'none';
 }
 
 // ─────────────────────────────────────────────
