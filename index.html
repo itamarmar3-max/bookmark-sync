@@ -1445,6 +1445,7 @@ const DEFAULT_SB_KEY = 'sb_publishable_tJfERoRop3vIOZBRFnFsUg_GYMd5UYy';
 let sbClient = null;
 let currentUser = null;
 let allBookmarks = [];
+let allFolders = [];           // explicit folders (incl. empty ones), from the `folders` table
 let currentView = 'folders';   // the main screen opens on the folder view, like a browser's bookmarks
 let currentFolder = null;
 
@@ -1640,6 +1641,17 @@ async function loadBookmarks() {
 
   allBookmarks = data || [];
   sortBookmarks();
+
+  // Explicit folders (including empty ones). The table may not exist yet on
+  // older setups — degrade quietly if so.
+  try {
+    const { data: fdata, error: ferr } = await sbClient
+      .from('folders').select('*').eq('user_id', currentUser.id);
+    allFolders = (!ferr && fdata) ? fdata : [];
+  } catch (_) {
+    allFolders = [];
+  }
+
   refreshViews();
 }
 
@@ -1661,6 +1673,16 @@ function updateStats() {
 // ─────────────────────────────────────────────
 function buildFolderTree() {
   const tree = {};
+
+  const ensurePath = (path) => {
+    let node = tree;
+    path.forEach(folder => {
+      if (!node[folder]) node[folder] = { _children: {}, _count: 0 };
+      node = node[folder]._children;
+    });
+  };
+  // make sure explicit (possibly empty) folders appear
+  allFolders.forEach(f => ensurePath(f.path || []));
 
   allBookmarks.forEach(b => {
     const path = b.folder_path || [];
@@ -1856,16 +1878,29 @@ function updateMobileNavActive(view) {
     btn.classList.toggle('active', btn.dataset.view === view));
 }
 
-// immediate sub-folder names (with total descendant counts) under a parent path
+// immediate sub-folder names (with total descendant counts) under a parent path.
+// Includes explicit empty folders, not just folders implied by bookmarks.
 function getSubFolders(parentPath) {
   const map = new Map();
+
+  const noteChild = (path) => {
+    if (path.length <= parentPath.length) return;
+    if (!parentPath.every((f, i) => path[i] === f)) return;
+    const child = path[parentPath.length];
+    if (!map.has(child)) map.set(child, 0);
+  };
+  // explicit folders (this is what makes empty folders show up)
+  allFolders.forEach(f => noteChild(f.path || []));
+
   allBookmarks.forEach(b => {
     const p = b.folder_path || [];
-    if (p.length <= parentPath.length) return;
-    if (!parentPath.every((f, i) => p[i] === f)) return;
-    const child = p[parentPath.length];
-    map.set(child, (map.get(child) || 0) + 1);
+    noteChild(p);
+    if (p.length > parentPath.length && parentPath.every((f, i) => p[i] === f)) {
+      const child = p[parentPath.length];
+      map.set(child, (map.get(child) || 0) + 1);
+    }
   });
+
   return [...map.entries()]
     .map(([name, count]) => ({ name, count }))
     .sort((a, b) => a.name.localeCompare(b.name, 'he'));
@@ -1916,8 +1951,8 @@ function renderFolderBrowser() {
   });
 
   const addBtns = `<span class="folder-browser-add">
-    <button class="btn-secondary" style="padding:0.3rem 0.7rem; font-size:0.75rem;" onclick="newSubfolderHere()">➕ תת-תיקייה</button>
-    <button class="btn-accent" style="padding:0.3rem 0.7rem; font-size:0.75rem;" onclick="addHere()">➕ הוסף כאן</button>
+    <button class="btn-secondary" style="padding:0.3rem 0.7rem; font-size:0.75rem;" onclick="newFolderHere()">➕ תיקייה</button>
+    <button class="btn-accent" style="padding:0.3rem 0.7rem; font-size:0.75rem;" onclick="addHere()">➕ הוסף קישורים</button>
   </span>`;
 
   let html = `<div class="folder-breadcrumb" style="grid-column:1/-1;">${crumbs.join('')}${addBtns}</div>`;
@@ -1949,6 +1984,9 @@ function renderLevelEntry(e, path, idx, total) {
   if (e.type === 'folder') {
     const full = [...path, e.name];
     const open = reorderMode ? '' : `onclick="enterFolder(${escHtml(JSON.stringify(full))})"`;
+    const del = reorderMode
+      ? `<button class="bookmark-btn delete" onclick="event.stopPropagation();deleteFolder(${escHtml(JSON.stringify(full))})" title="מחק תיקייה">🗑</button>`
+      : '';
     return `<div class="folder-card ${reorderMode ? 'reordering' : ''}" ${open}>
       ${arrows}
       <div class="folder-card-body">
@@ -1956,6 +1994,7 @@ function renderLevelEntry(e, path, idx, total) {
         <div class="folder-card-count">${e.count} קישורים</div>
       </div>
       <div class="folder-card-icon">📁</div>
+      ${del}
     </div>`;
   }
   return renderBookmarkCard(e.bm, arrows);
@@ -1965,11 +2004,74 @@ function addHere() {
   openBulkAdd('', currentFolder || []);
 }
 
-function newSubfolderHere() {
-  const name = (prompt('שם התת-תיקייה החדשה:') || '').trim();
+// Create an empty folder under the current one (no link needed)
+async function newFolderHere() {
+  const name = (prompt('שם התיקייה החדשה:') || '').trim();
   if (!name) return;
-  // a folder becomes real once it has a link — open the paste box aimed at the new sub-folder
-  openBulkAdd('', [...(currentFolder || []), name]);
+  const path = [...(currentFolder || []), name];
+  if (allFolders.some(f => JSON.stringify(f.path) === JSON.stringify(path)) ||
+      getAllFolderPaths().some(p => JSON.stringify(p) === JSON.stringify(path))) {
+    showToast('תיקייה בשם הזה כבר קיימת כאן', 'error');
+    return;
+  }
+  try {
+    const { data, error } = await sbClient.from('folders')
+      .insert({ user_id: currentUser.id, path }).select();
+    if (error) throw error;
+    allFolders.push((data && data[0]) || { id: 'local-' + Date.now(), path });
+    enterFolder(path);
+  } catch (e) {
+    console.error(e);
+    showToast('שגיאה ביצירת תיקייה — ודא שהרצת את ה-SQL של טבלת folders', 'error');
+  }
+}
+
+// Delete a folder (and everything inside it)
+async function deleteFolder(path) {
+  const under = (arr, keyFn) => arr.filter(x => {
+    const p = keyFn(x) || [];
+    return p.length >= path.length && path.every((f, i) => p[i] === f);
+  });
+  const bmInside = under(allBookmarks, b => b.folder_path);
+  const foldersInside = under(allFolders, f => f.path);
+
+  const name = path[path.length - 1];
+  const msg = bmInside.length
+    ? `למחוק את התיקייה "${name}" ואת ${bmInside.length} הקישורים שבתוכה (כולל תת-תיקיות)?`
+    : `למחוק את התיקייה "${name}"?`;
+  if (!confirm(msg)) return;
+
+  try {
+    if (bmInside.length) {
+      const ids = bmInside.map(b => b.id);
+      for (let i = 0; i < ids.length; i += 100) {
+        const { error } = await sbClient.from('bookmarks')
+          .delete().in('id', ids.slice(i, i + 100)).eq('user_id', currentUser.id);
+        if (error) throw error;
+      }
+      const idSet = new Set(ids);
+      allBookmarks = allBookmarks.filter(b => !idSet.has(b.id));
+    }
+    for (const f of foldersInside) {
+      if (String(f.id).startsWith('local-')) continue;
+      const { error } = await sbClient.from('folders')
+        .delete().eq('id', f.id).eq('user_id', currentUser.id);
+      if (error) throw error;
+    }
+    const delSet = new Set(foldersInside);
+    allFolders = allFolders.filter(f => !delSet.has(f));
+
+    // if we're standing inside the deleted folder, step up to its parent
+    if (currentFolder && currentFolder.length >= path.length && path.every((f, i) => currentFolder[i] === f)) {
+      const parent = path.slice(0, -1);
+      currentFolder = parent.length ? parent : null;
+    }
+    refreshViews();
+    showToast('התיקייה נמחקה', 'success');
+  } catch (e) {
+    console.error(e);
+    showToast('שגיאה במחיקת התיקייה', 'error');
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -2401,10 +2503,11 @@ let qsSuggestionSeq = 0;
 
 function getAllFolderPaths() {
   const paths = new Set();
-  allBookmarks.forEach(b => {
-    const p = b.folder_path || [];
+  const addPrefixes = (p) => {
     for (let i = 1; i <= p.length; i++) paths.add(JSON.stringify(p.slice(0, i)));
-  });
+  };
+  allBookmarks.forEach(b => addPrefixes(b.folder_path || []));
+  allFolders.forEach(f => addPrefixes(f.path || []));   // include empty folders
   return [...paths].map(s => JSON.parse(s))
     .sort((a, b) => a.join('/').localeCompare(b.join('/'), 'he'));
 }
