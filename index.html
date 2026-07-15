@@ -1220,6 +1220,9 @@ CREATE INDEX ON bookmarks(user_id);</code>
           <button class="btn-secondary" onclick="document.getElementById('import-file').click()">
             📂 ייבוא נוסף
           </button>
+          <button class="btn-secondary" onclick="exportBookmarksHtml()">
+            ⬇ ייצוא HTML
+          </button>
         </div>
       </div>
 
@@ -2331,6 +2334,76 @@ async function deleteBookmark(id) {
 // ─────────────────────────────────────────────
 // IMPORT BOOKMARKS
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// EXPORT — all bookmarks to a Netscape HTML file, keeping the folder structure
+// ─────────────────────────────────────────────
+function buildExportTree() {
+  const root = { folders: new Map(), bookmarks: [] };
+  const nodeAt = (path) => {
+    let node = root;
+    (path || []).forEach(name => {
+      if (!node.folders.has(name)) node.folders.set(name, { folders: new Map(), bookmarks: [] });
+      node = node.folders.get(name);
+    });
+    return node;
+  };
+  // include empty folders so the structure is preserved
+  allFolders.forEach(f => nodeAt(f.path || []));
+  // place bookmarks in their manual order
+  [...allBookmarks]
+    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0) || new Date(a.created_at) - new Date(b.created_at))
+    .forEach(b => nodeAt(b.folder_path || []).bookmarks.push(b));
+  return root;
+}
+
+function buildExportHtml() {
+  const esc = s => String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  const lines = [];
+  const renderNode = (node, indent) => {
+    const pad = '    '.repeat(indent);
+    [...node.folders.keys()].sort((a, b) => a.localeCompare(b, 'he')).forEach(name => {
+      lines.push(`${pad}<DT><H3>${esc(name)}</H3>`);
+      lines.push(`${pad}<DL><p>`);
+      renderNode(node.folders.get(name), indent + 1);
+      lines.push(`${pad}</DL><p>`);
+    });
+    node.bookmarks.forEach(b => {
+      const addDate = Math.floor(new Date(b.created_at || Date.now()).getTime() / 1000);
+      lines.push(`${pad}<DT><A HREF="${esc(b.url)}" ADD_DATE="${addDate}">${esc(b.title || b.url)}</A>`);
+    });
+  };
+  renderNode(buildExportTree(), 1);
+
+  return `<!DOCTYPE NETSCAPE-Bookmark-file-1>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
+<TITLE>Bookmarks</TITLE>
+<H1>Bookmarks</H1>
+<DL><p>
+${lines.join('\n')}
+</DL><p>
+`;
+}
+
+function exportBookmarksHtml() {
+  if (!allBookmarks.length && !allFolders.length) {
+    showToast('אין מה לייצא עדיין', 'error');
+    return;
+  }
+  const html = buildExportHtml();
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `bookmarks-${new Date().toISOString().slice(0, 10)}.html`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast(`✅ יוצאו ${allBookmarks.length} סימניות`, 'success');
+}
+
 async function importBookmarks(input) {
   const file = input.files[0];
   if (!file) return;
@@ -2363,13 +2436,16 @@ async function importBookmarks(input) {
 
   const existingUrls = new Set((existing || []).map(e => e.url));
 
-  // Filter new bookmarks (dedup within the file too)
-  const seen = new Set();
-  const toInsert = bookmarks.filter(b => {
-    if (existingUrls.has(b.url) || seen.has(b.url)) return false;
-    seen.add(b.url);
-    return true;
-  });
+  // Collapse duplicate URLs from the parser, keeping the DEEPEST folder path
+  // (lenient bookmark files can list the same link at multiple nesting levels)
+  const bestByUrl = new Map();
+  for (const b of bookmarks) {
+    const prev = bestByUrl.get(b.url);
+    if (!prev || (b.folder_path || []).length > (prev.folder_path || []).length) {
+      bestByUrl.set(b.url, b);
+    }
+  }
+  const toInsert = [...bestByUrl.values()].filter(b => !existingUrls.has(b.url));
 
   if (toInsert.length === 0) {
     progressEl.style.display = 'none';
