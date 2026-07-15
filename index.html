@@ -781,6 +781,25 @@
   .folder-card-name { font-size: 0.92rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .folder-card-count { font-size: 0.76rem; color: var(--text3); margin-top: 0.15rem; }
 
+  /* Reorder mode */
+  #reorder-btn.active { background: var(--accent-dim); border-color: var(--accent-glow); color: var(--accent2); }
+  .reorder-ctl { display: flex; flex-direction: column; gap: 3px; flex-shrink: 0; }
+  .reorder-btn {
+    width: 30px; height: 22px;
+    background: var(--bg4);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 10px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .reorder-btn:hover:not(:disabled) { background: var(--accent-dim); color: var(--accent2); }
+  .reorder-btn:disabled { opacity: 0.3; cursor: default; }
+  .bookmark-card.reordering .bookmark-main { pointer-events: none; }
+  .bookmark-card.reordering .bookmark-actions { display: none; }
+  .folder-card.reordering { cursor: default; }
+
   /* AI chat */
   .chat-body {
     display: flex;
@@ -1189,6 +1208,9 @@ CREATE INDEX ON bookmarks(user_id);</code>
           <p id="view-subtitle">טוען...</p>
         </div>
         <div class="header-actions">
+          <button class="btn-secondary" id="reorder-btn" style="display:none;" onclick="toggleReorder()">
+            ↕ סדר
+          </button>
           <button class="btn-secondary" id="discover-btn" style="display:none;" onclick="startDiscover()">
             ✨ גלה עוד
           </button>
@@ -1203,30 +1225,6 @@ CREATE INDEX ON bookmarks(user_id);</code>
 
       <!-- Bookmarks -->
       <div class="bookmarks-grid" id="bookmarks-grid"></div>
-
-      <!-- Stats (shown below the bookmarks, not above them) -->
-      <div class="stats-bar" id="stats-bar" style="display:none; margin-top:1.5rem; margin-bottom:0;">
-        <div class="stat-card">
-          <div class="stat-label">סה"כ סימניות</div>
-          <div class="stat-value" id="stat-total">0</div>
-          <div class="stat-sub">במכשיר זה</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">תיקיות</div>
-          <div class="stat-value" id="stat-folders">0</div>
-          <div class="stat-sub">רמות שונות</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">אתרים שונים</div>
-          <div class="stat-value" id="stat-domains">0</div>
-          <div class="stat-sub">domains ייחודיים</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">ייבוא אחרון</div>
-          <div class="stat-value" style="font-size:1rem;" id="stat-last">—</div>
-          <div class="stat-sub">תאריך</div>
-        </div>
-      </div>
 
       <!-- Loading -->
       <div class="loading" id="loading-indicator" style="display:none;">
@@ -1276,6 +1274,23 @@ CREATE INDEX ON bookmarks(user_id);</code>
     <div class="modal-actions">
       <button class="btn-primary" id="bulkadd-save-btn" onclick="saveBulkLinks()">שמור הכל</button>
       <button class="btn-secondary" onclick="closeBulkAdd()">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- MOVE TO FOLDER MODAL -->
+<div class="modal-overlay" id="move-modal">
+  <div class="modal-card">
+    <h2>📁 העברה לתיקייה</h2>
+    <p id="move-sub"></p>
+    <div class="field">
+      <label>בחר תיקייה</label>
+      <select id="move-folder" onchange="moveFolderChanged()"></select>
+      <input type="text" id="move-new-folder" class="rtl-input" placeholder="שם תיקייה חדשה (אפשר גם אב/בן)" style="display:none; margin-top:0.5rem;" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="doMove()">העבר</button>
+      <button class="btn-secondary" onclick="closeMove()">ביטול</button>
     </div>
   </div>
 </div>
@@ -1624,36 +1639,20 @@ async function loadBookmarks() {
   }
 
   allBookmarks = data || [];
+  sortBookmarks();
   refreshViews();
 }
 
-// ─────────────────────────────────────────────
-// STATS
-// ─────────────────────────────────────────────
+// Keep bookmarks in the user's manual order (position), falling back to
+// creation time when positions are equal / not set yet
+function sortBookmarks() {
+  allBookmarks.sort((a, b) =>
+    (a.position ?? 0) - (b.position ?? 0) ||
+    new Date(a.created_at) - new Date(b.created_at));
+}
+
 function updateStats() {
-  const total = allBookmarks.length;
-  const folders = new Set();
-  const domains = new Set();
-
-  allBookmarks.forEach(b => {
-    (b.folder_path || []).forEach(f => folders.add(f));
-    if (b.domain) domains.add(b.domain);
-  });
-
-  document.getElementById('stat-total').textContent = total;
-  document.getElementById('stat-folders').textContent = folders.size;
-  document.getElementById('stat-domains').textContent = domains.size;
-  document.getElementById('count-all').textContent = total;
-
-  const latest = allBookmarks.reduce((a, b) =>
-    new Date(b.created_at) > new Date(a.created_at) ? b : a, allBookmarks[0]);
-
-  if (latest) {
-    const d = new Date(latest.created_at);
-    document.getElementById('stat-last').textContent =
-      d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
-  }
-
+  document.getElementById('count-all').textContent = allBookmarks.length;
   refreshAIUI();
 }
 
@@ -1726,6 +1725,8 @@ function selectFolder(path, id) {
 // ─────────────────────────────────────────────
 // FOLDER BROWSER (drill-down, mobile-friendly)
 // ─────────────────────────────────────────────
+let reorderMode = false;
+
 function openFolders() { enterFolder([]); }
 
 function enterFolder(path) {
@@ -1738,9 +1739,116 @@ function enterFolder(path) {
     currentFolder ? '📁 ' + currentFolder[currentFolder.length - 1] : '📁 עיון בתיקיות';
   document.getElementById('search-input').value = '';
   smartSearchResults = null;
+  document.getElementById('reorder-btn').style.display = '';
   updateMobileNavActive('folders');
   refreshAIUI();
   renderBookmarks();
+}
+
+function toggleReorder() {
+  reorderMode = !reorderMode;
+  document.getElementById('reorder-btn').classList.toggle('active', reorderMode);
+  renderBookmarks();
+}
+
+// build the full flattened order, using `reorderEntries` for the level being reordered
+function buildGlobalOrder(reorderPath, reorderEntries) {
+  const sameLevel = (p) => p.length === reorderPath.length && p.every((f, i) => f === reorderPath[i]);
+  function rec(path) {
+    const entries = sameLevel(path) ? reorderEntries : levelEntries(path);
+    const res = [];
+    for (const e of entries) {
+      if (e.type === 'bookmark') res.push(e.bm);
+      else res.push(...rec([...path, e.name]));
+    }
+    return res;
+  }
+  return rec([]);
+}
+
+async function reorderMove(key, dir) {
+  const path = currentFolder || [];
+  const entries = levelEntries(path);
+  const i = entries.findIndex(e => entryKeyOf(e) === key);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= entries.length) return;
+  [entries[i], entries[j]] = [entries[j], entries[i]];
+
+  // renumber the whole collection in the new order, persist only what changed
+  const ordered = buildGlobalOrder(path, entries);
+  const changed = [];
+  ordered.forEach((b, idx) => {
+    if ((b.position ?? -1) !== idx) { b.position = idx; changed.push(b); }
+  });
+  sortBookmarks();
+  renderBookmarks();
+
+  if (changed.length) {
+    try {
+      await persistPositions(changed);
+    } catch (e) {
+      console.error(e);
+      showToast('הסדר נשמר במכשיר — להשמירה בין מכשירים הרץ את עדכון ה-SQL', 'error');
+    }
+  }
+}
+
+async function persistPositions(changed) {
+  const rows = changed.map(b => ({
+    id: b.id, user_id: currentUser.id, title: b.title, url: b.url,
+    folder_path: b.folder_path, domain: b.domain, position: b.position
+  }));
+  for (let i = 0; i < rows.length; i += 100) {
+    const { error } = await sbClient.from('bookmarks')
+      .upsert(rows.slice(i, i + 100), { onConflict: 'id' });
+    if (error) throw error;
+  }
+}
+
+// ─────────────────────────────────────────────
+// MOVE A BOOKMARK TO ANOTHER FOLDER
+// ─────────────────────────────────────────────
+let moveTargetId = null;
+
+function openMoveModal(id) {
+  moveTargetId = id;
+  const bm = allBookmarks.find(b => b.id === id);
+  document.getElementById('move-sub').textContent = bm ? bm.title : '';
+  document.getElementById('move-new-folder').value = '';
+  document.getElementById('move-new-folder').style.display = 'none';
+  populateFolderSelect(document.getElementById('move-folder'), bm ? bm.folder_path : null);
+  document.getElementById('move-modal').classList.add('open');
+}
+function closeMove() { document.getElementById('move-modal').classList.remove('open'); }
+function moveFolderChanged() {
+  const isNew = document.getElementById('move-folder').value === '__new__';
+  document.getElementById('move-new-folder').style.display = isNew ? 'block' : 'none';
+  if (isNew) document.getElementById('move-new-folder').focus();
+}
+function getMoveFolder() {
+  const v = document.getElementById('move-folder').value;
+  if (v === '__none__') return [];
+  if (v === '__new__') {
+    return document.getElementById('move-new-folder').value.split('/').map(s => s.trim()).filter(Boolean);
+  }
+  try { return JSON.parse(v); } catch (_) { return []; }
+}
+async function doMove() {
+  const bm = allBookmarks.find(b => b.id === moveTargetId);
+  if (!bm) { closeMove(); return; }
+  const folder_path = getMoveFolder();
+  try {
+    const { error } = await sbClient.from('bookmarks')
+      .update({ folder_path }).eq('id', bm.id).eq('user_id', currentUser.id);
+    if (error) throw error;
+    bm.folder_path = folder_path;
+    closeMove();
+    refreshViews();
+    showToast('הקישור הועבר', 'success');
+  } catch (e) {
+    console.error(e);
+    showToast('שגיאה בהעברה', 'error');
+  }
 }
 
 function updateMobileNavActive(view) {
@@ -1771,11 +1879,34 @@ function getBookmarksExactlyIn(path) {
   });
 }
 
+// Folders + the bookmarks directly in this folder, merged into one ordered
+// list (custom order via `position`; folders sort by their smallest position)
+function levelEntries(path) {
+  const folders = getSubFolders(path).map(s => {
+    const full = [...path, s.name];
+    let rep = Infinity;
+    allBookmarks.forEach(b => {
+      const p = b.folder_path || [];
+      if (p.length > path.length && full.every((f, i) => p[i] === f)) {
+        rep = Math.min(rep, b.position ?? 0);
+      }
+    });
+    return { type: 'folder', name: s.name, count: s.count, rep: isFinite(rep) ? rep : 0, tie: s.name };
+  });
+  const loose = getBookmarksExactlyIn(path).map(b => ({ type: 'bookmark', bm: b, rep: b.position ?? 0, tie: b.title || '' }));
+  return [...folders, ...loose].sort((a, b) =>
+    a.rep - b.rep ||
+    (a.type === b.type ? a.tie.localeCompare(b.tie, 'he') : (a.type === 'folder' ? -1 : 1)));
+}
+
+function entryKeyOf(e) { return e.type === 'folder' ? 'f:' + e.name : 'b:' + e.bm.id; }
+
 function renderFolderBrowser() {
   const grid = document.getElementById('bookmarks-grid');
   const path = currentFolder || [];
-  const subs = getSubFolders(path);
-  const items = getBookmarksExactlyIn(path);
+  const entries = levelEntries(path);
+  const folderCount = entries.filter(e => e.type === 'folder').length;
+  const bmCount = entries.length - folderCount;
 
   const crumbs = [`<span class="crumb${path.length ? '' : ' current'}" onclick="enterFolder([])">🏠 תיקיות</span>`];
   path.forEach((name, i) => {
@@ -1790,10 +1921,9 @@ function renderFolderBrowser() {
   </span>`;
 
   let html = `<div class="folder-breadcrumb" style="grid-column:1/-1;">${crumbs.join('')}${addBtns}</div>`;
-  html += subs.map(s => renderFolderCard(path, s)).join('');
-  html += items.map(b => renderBookmarkCard(b)).join('');
+  html += entries.map((e, i) => renderLevelEntry(e, path, i, entries.length)).join('');
 
-  if (!subs.length && !items.length) {
+  if (!entries.length) {
     html += `<div class="empty-state" style="grid-column:1/-1;">
       <div class="empty-icon">📂</div>
       <h3>התיקייה ריקה</h3>
@@ -1802,18 +1932,33 @@ function renderFolderBrowser() {
   }
 
   grid.innerHTML = html;
-  document.getElementById('view-subtitle').textContent = `${subs.length} תיקיות · ${items.length} קישורים`;
+  document.getElementById('view-subtitle').textContent =
+    reorderMode ? '↕ מצב סידור — השתמש בחצים' : `${folderCount} תיקיות · ${bmCount} קישורים`;
 }
 
-function renderFolderCard(parentPath, s) {
-  const full = [...parentPath, s.name];
-  return `<div class="folder-card" onclick="enterFolder(${escHtml(JSON.stringify(full))})">
-    <div class="folder-card-body">
-      <div class="folder-card-name">${escHtml(s.name)}</div>
-      <div class="folder-card-count">${s.count} קישורים</div>
-    </div>
-    <div class="folder-card-icon">📁</div>
-  </div>`;
+function reorderArrows(idx, total, key) {
+  if (!reorderMode) return '';
+  return `<span class="reorder-ctl">
+    <button class="reorder-btn" ${idx === 0 ? 'disabled' : ''} onclick="reorderMove('${key}',-1)" title="למעלה">▲</button>
+    <button class="reorder-btn" ${idx === total - 1 ? 'disabled' : ''} onclick="reorderMove('${key}',1)" title="למטה">▼</button>
+  </span>`;
+}
+
+function renderLevelEntry(e, path, idx, total) {
+  const arrows = reorderArrows(idx, total, entryKeyOf(e));
+  if (e.type === 'folder') {
+    const full = [...path, e.name];
+    const open = reorderMode ? '' : `onclick="enterFolder(${escHtml(JSON.stringify(full))})"`;
+    return `<div class="folder-card ${reorderMode ? 'reordering' : ''}" ${open}>
+      ${arrows}
+      <div class="folder-card-body">
+        <div class="folder-card-name">${escHtml(e.name)}</div>
+        <div class="folder-card-count">${e.count} קישורים</div>
+      </div>
+      <div class="folder-card-icon">📁</div>
+    </div>`;
+  }
+  return renderBookmarkCard(e.bm, arrows);
 }
 
 function addHere() {
@@ -1934,6 +2079,12 @@ function setView(view) {
   currentView = view;
   currentFolder = null;
 
+  // reorder only makes sense in the folder view
+  reorderMode = false;
+  const reorderBtn = document.getElementById('reorder-btn');
+  reorderBtn.classList.remove('active');
+  reorderBtn.style.display = 'none';
+
   document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.folder-item').forEach(el => el.classList.remove('active'));
   document.getElementById('nav-' + view)?.classList.add('active');
@@ -2001,7 +2152,7 @@ function renderBookmarks() {
   grid.innerHTML = items.map(b => renderBookmarkCard(b)).join('');
 }
 
-function renderBookmarkCard(b) {
+function renderBookmarkCard(b, arrows = '') {
   const domain = b.domain || '';
   const faviconUrl = domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=64` : '';
   const safeUrl = escHtml(b.url);
@@ -2012,7 +2163,8 @@ function renderBookmarkCard(b) {
   // Real anchor for the click area — reliable in a standalone PWA where
   // window.open can be blocked.
   return `
-    <div class="bookmark-card">
+    <div class="bookmark-card ${arrows ? 'reordering' : ''}">
+      ${arrows}
       <a class="bookmark-main" href="${safeUrl}" target="_blank" rel="noopener noreferrer">
         <span class="bm-text">
           <span class="bookmark-title" title="${escHtml(b.title)}">${escHtml(b.title)}</span>
@@ -2023,6 +2175,7 @@ function renderBookmarkCard(b) {
         </span>
       </a>
       <span class="bookmark-actions">
+        <button class="bookmark-btn" data-id="${b.id}" onclick="openMoveModal(this.dataset.id)" title="העבר לתיקייה">📁</button>
         <button class="bookmark-btn" data-url="${safeUrl}" onclick="copyUrl(this.dataset.url)" title="העתק קישור">📋</button>
         <button class="bookmark-btn delete" data-id="${b.id}" onclick="deleteBookmark(this.dataset.id)" title="מחק">🗑</button>
       </span>
@@ -2410,7 +2563,6 @@ async function saveBookmark({ title, url, folder_path }) {
 function refreshViews() {
   const hasAny = allBookmarks.length > 0;
   document.getElementById('upload-zone').style.display = hasAny ? 'none' : 'block';
-  document.getElementById('stats-bar').style.display = hasAny ? 'grid' : 'none';
   document.getElementById('content-header').style.display = hasAny ? 'flex' : 'none';
   if (hasAny) {
     updateStats();
